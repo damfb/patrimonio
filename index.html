@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Patrimônio OS · v68 Dashboard médias corrigidas</title>
+<title>Patrimônio OS · v72 Ajustes aporte, dólar e configuração</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -1056,7 +1056,7 @@
 <aside class="sidebar">
 <div class="brand">
 <div class="brand-icon"><i class="ph-fill ph-chart-polar" style="color:var(--primary)"></i></div>
-<div>Patrimônio<br/><sub>v71 · dashboard hierarquia corrigida</sub></div>
+<div>Patrimônio<br/><sub>v72 · aporte/config/dólar</sub></div>
 </div>
 <div class="nav-group">
 <div class="nav-label">Principal</div>
@@ -1095,6 +1095,10 @@
 <div class="status-pill" onclick="app.buscarCotacoes()" title="Clique para sincronizar cotações">
 <div class="status-dot" id="statusDot"></div>
 <span id="statusCotacao">Pronto</span>
+</div>
+<div class="status-pill v72-dollar-pill" onclick="app.navigate('view-config', document.querySelector('.nav-item[data-view=\'view-config\']'))" title="Dólar atual usado pelo sistema. Edite em Configurações.">
+<i class="ph ph-currency-dollar" style="font-size:15px;color:var(--primary)"></i>
+<span id="statusDolarAtual">Dólar: —</span>
 </div>
 <button class="btn btn-primary btn-sm" onclick="app.navigate('view-proximo-aporte', document.querySelector('.nav-item[data-view=\'view-proximo-aporte\']'))"><i class="ph ph-target"></i> Aporte</button>
 <button class="btn btn-outline btn-sm" onclick="app.navigate('view-ativos', document.querySelector('.nav-item[data-view=\'view-ativos\']'))"><i class="ph ph-briefcase"></i> Ativos</button>
@@ -1619,7 +1623,7 @@
 </section>
 <!-- ───────── CONFIG ───────── -->
 <section class="view" id="view-config">
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px;">
+<div class="config-grid-v72">
 <div class="card">
 <div class="card-hd"><div class="card-title"><i class="ph-fill ph-link"></i> Fonte de Cotações</div></div>
 <div class="info-box">
@@ -11492,5 +11496,1226 @@ window.addEventListener('load', () => app.init());
   window.addEventListener('load', () => setTimeout(installV70, 140));
 })();
 </script>
+<style id="v72-ajustes-css">
+/* ── V72: dólar no topo, configurações compactas e memórias com gráfico ── */
+.top-bar > div:last-child{flex-wrap:wrap;justify-content:flex-end;}
+.v72-dollar-pill{background:linear-gradient(180deg,var(--bg-surface),var(--bg-card));border-color:rgba(61,142,240,.28);}
+.v72-dollar-pill strong{font-family:var(--font-mono);color:var(--text-main);}
+.config-grid-v72{display:grid;grid-template-columns:minmax(360px,1.05fr) minmax(320px,.95fr);gap:16px;max-width:1240px;align-items:start;}
+.config-grid-v72 .card{margin-bottom:0;padding:18px;}
+.config-grid-v72 .card-hd{margin-bottom:14px;padding-bottom:12px;}
+.config-grid-v72 .info-box{margin-bottom:12px;line-height:1.45;}
+.config-grid-v72 .f-group{margin-bottom:12px;}
+.config-grid-v72 .btn{min-height:36px;}
+.config-grid-v72 #configMetasMacro{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px;}
+.config-grid-v72 .v72-meta-item{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:9px 10px;}
+.config-grid-v72 .v72-meta-row{display:flex;align-items:center;gap:7px;}
+.config-grid-v72 .v72-meta-row .f-input{max-width:72px;padding:6px 8px;}
+.v72-config-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.v72-config-actions .btn{flex:1;justify-content:center;min-width:145px;}
+.v72-stat-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px!important;color:var(--text-main)!important;}
+.v72-stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 11px;min-height:72px;}
+.v72-stat-card span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.65px;color:var(--text-muted);font-weight:800;margin-bottom:5px;}
+.v72-stat-card strong{font-family:var(--font-display);font-size:17px;line-height:1.1;color:var(--text-main);word-break:break-word;}
+.v72-stat-card small{display:block;color:var(--text-muted);font-size:11px;margin-top:3px;}
+.v72-memory-chart{margin:14px 0 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.v72-memory-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.v72-memory-chart-head strong{font-family:var(--font-display);font-size:14px;}
+.v72-memory-chart-head span{font-size:11px;color:var(--text-muted);}
+.v72-memory-chart-wrap{position:relative;height:230px;}
+.v72-memory-mini-table{margin-top:12px;}
+.v72-memory-mini-table th,.v72-memory-mini-table td{padding:8px 10px!important;font-size:12px!important;}
+@media(max-width:900px){.config-grid-v72{grid-template-columns:1fr;}.top-bar > div:last-child{justify-content:flex-start;}}
+</style>
+<script id="v72-ajustes-script">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV72(){
+    const A = getApp();
+    if(!A || A.__v72AjustesInstalados) return;
+    A.__v72AjustesInstalados = true;
+    A.VERSAO_SISTEMA = 'v72_aporte_config_dolar_graficos';
+    document.title = 'Patrimônio OS · v72 Ajustes aporte, dólar e configuração';
+    const brandSub = document.querySelector('.brand sub');
+    if(brandSub) brandSub.textContent = 'v72 · aporte/config/dólar';
+
+    A.v72RefreshDolarPill = function(){
+      const el = document.getElementById('statusDolarAtual');
+      if(!el) return;
+      const dolar = this.getDolarHoje?.() || this.parseNum?.(this.s?.dolarAtual) || this.parseNum?.(this.s?.config?.dolarManual) || 0;
+      const txt = dolar > 0 ? this.fmtN(dolar,4) : '—';
+      el.innerHTML = `Dólar: <strong>R$ ${txt}</strong>`;
+    };
+
+    const oldSetStatus = A.setStatus?.bind(A);
+    if(oldSetStatus && !oldSetStatus.__v72Wrapped){
+      const fn = function(){ const ret = oldSetStatus(...arguments); try{ this.v72RefreshDolarPill?.(); }catch(e){} return ret; };
+      fn.__v72Wrapped = true;
+      A.setStatus = fn;
+    }
+
+    // Correção central: no aporte médio do ano, a RF anual entra integralmente no numerador.
+    A.getAporteAnoCorrentePonderadoResumo = function(){
+      const meses = this.getMesesAnoCorrentePonderado?.() || this.getMesesAnoCorrente?.() || [];
+      const anoAtual = new Date().getFullYear();
+      let totalMeses = 0;
+      let mesesPreenchidos = 0;
+      meses.forEach(({ano, mes}) => {
+        const valor = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(ano, mes) : (this.getHistoricoMesCalculado ? this.getHistoricoMesCalculado(ano, mes) : 0);
+        if (Math.abs(valor || 0) > 0.00001) { totalMeses += valor || 0; mesesPreenchidos++; }
+      });
+      const rfAno = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(anoAtual, 13) : ((this.getHistoricoMesCalculado?.(anoAtual, 13) || 0) + (this.parseNum?.(this.getHistoricoAjuste?.(anoAtual, 13)?.ajuste || 0) || 0));
+      const mesesQtd = Math.max(mesesPreenchidos || meses.length || 1, 1);
+      const total = totalMeses + (rfAno || 0);
+      return { total, meses: mesesQtd, media: total / mesesQtd, totalMeses, rfAno, rfProporcional: rfAno || 0, mesesPreenchidos };
+    };
+
+    A.v72AnosAporte = function(){
+      const anos = new Set();
+      (this.s?.banco || []).forEach(tx => {
+        const a = parseInt(tx.ano || String(this.normData?.(tx.data || '') || '').slice(0,4));
+        if(a && a >= 2019) anos.add(a);
+      });
+      Object.keys(this.s?.historicoAjustes || {}).forEach(k => { const a = parseInt(k.split('-')[0]); if(a) anos.add(a); });
+      if(!anos.size) anos.add(new Date().getFullYear());
+      return [...anos].sort((a,b)=>a-b);
+    };
+
+    A.v72SerieAporteAnual = function(){
+      return (this.v72AnosAporte?.() || []).map(ano => {
+        let totalMeses = 0, meses = 0;
+        for(let m=1;m<=12;m++){
+          const v = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(ano,m) : ((this.getHistoricoMesCalculado?.(ano,m) || 0) + (this.parseNum?.(this.getHistoricoAjuste?.(ano,m)?.ajuste || 0) || 0));
+          if(Math.abs(v || 0) > 0.00001){ totalMeses += v || 0; meses++; }
+        }
+        const rf = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(ano,13) : ((this.getHistoricoMesCalculado?.(ano,13) || 0) + (this.parseNum?.(this.getHistoricoAjuste?.(ano,13)?.ajuste || 0) || 0));
+        const total = totalMeses + (rf || 0);
+        return { ano, total, media: meses > 0 ? total / meses : 0, meses, rf: rf || 0 };
+      }).filter(x => Math.abs(x.total || 0) > 0.00001 || x.ano === new Date().getFullYear());
+    };
+
+    A.v72AnosRenda = function(){
+      const anos = new Set();
+      Object.keys(this.s?.rendaManual || {}).forEach(k => { const a = parseInt(k.split('-')[0]); if(a) anos.add(a); });
+      if(!anos.size) anos.add(new Date().getFullYear());
+      return [...anos].sort((a,b)=>a-b);
+    };
+
+    A.v72SerieRendaAnual = function(){
+      return (this.v72AnosRenda?.() || []).map(ano => {
+        const r = this.getRendaAnoResumo?.(ano, ano === new Date().getFullYear()) || {total:0,media:0,meses:0,totalRF:0};
+        return { ano, total:r.total || 0, media:r.media || 0, meses:r.meses || 0, rf:r.totalRF ?? r.rfAno ?? 0 };
+      }).filter(x => Math.abs(x.total || 0) > 0.00001 || x.ano === new Date().getFullYear());
+    };
+
+    A.v72ChartColors = function(){
+      const cs = getComputedStyle(document.documentElement);
+      return {
+        text: cs.getPropertyValue('--text-muted').trim() || '#5a7398',
+        grid: cs.getPropertyValue('--border').trim() || '#1a2d48',
+        primary: cs.getPropertyValue('--primary').trim() || '#3d8ef0',
+        success: cs.getPropertyValue('--success').trim() || '#22d07a'
+      };
+    };
+
+    A.v72GraficoMemoria = function(canvasId, serie, tipo){
+      const ctx = document.getElementById(canvasId);
+      if(!ctx || typeof Chart === 'undefined') return;
+      const key = tipo === 'renda' ? 'chartMemoriaRendaAnoV72' : 'chartMemoriaAporteAnoV72';
+      if(this.s?.[key]){ try{ this.s[key].destroy(); }catch(e){} this.s[key] = null; }
+      const c = this.v72ChartColors?.() || {};
+      const label = tipo === 'renda' ? 'Renda média mensal' : 'Aporte médio mensal';
+      this.s[key] = new Chart(ctx, {
+        type:'line',
+        data:{ labels: serie.map(i => String(i.ano)), datasets:[{ label, data: serie.map(i => i.media || 0), borderColor:c.primary, backgroundColor:'rgba(61,142,240,0.16)', tension:.25, fill:true, pointRadius:4 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:c.text } }, tooltip:{ callbacks:{ label:(ctx)=>`${label}: ${this.fmt?.(ctx.parsed.y || 0)}/mês` } } }, scales:{ x:{ ticks:{ color:c.text }, grid:{ color:c.grid } }, y:{ ticks:{ color:c.text, callback:(v)=>this.fmt ? this.fmt(v) : v }, grid:{ color:c.grid } } } },
+        plugins:[this.getChartValueLabelPlugin?.()].filter(Boolean)
+      });
+    };
+
+    A.v72TabelaSerie = function(serie){
+      return `<div class="table-wrap v72-memory-mini-table"><table><thead><tr><th>Ano</th><th>Total considerado</th><th>Média mensal</th><th>Meses</th></tr></thead><tbody>${serie.map(i=>`<tr><td><strong>${i.ano}</strong></td><td style="font-family:var(--font-mono)">${this.fmt(i.total||0)}</td><td style="font-family:var(--font-mono);font-weight:800;color:var(--primary)">${this.fmt(i.media||0)}</td><td>${i.meses || 0}</td></tr>`).join('')}</tbody></table></div>`;
+    };
+
+    A.v72ChartBlock = function(tipo, serie){
+      const canvasId = tipo === 'renda' ? 'v72ChartRendaAno' : 'v72ChartAporteAno';
+      const titulo = tipo === 'renda' ? 'Evolução da renda média mensal por ano' : 'Evolução do aporte médio mensal por ano';
+      return `<div class="v72-memory-chart"><div class="v72-memory-chart-head"><strong><i class="ph-fill ph-chart-line-up" style="color:var(--primary)"></i> ${titulo}</strong><span>Total anual ÷ meses considerados</span></div><div class="v72-memory-chart-wrap"><canvas id="${canvasId}"></canvas></div>${this.v72TabelaSerie(serie)}</div>`;
+    };
+
+    A.abrirMemoriaAporteAnoV64 = function(){
+      const ano = new Date().getFullYear();
+      const resumo = this.getAporteAnoCorrentePonderadoResumo?.() || {total:0,media:0,meses:1,totalMeses:0,rfAno:0,rfProporcional:0};
+      const meses = this.getMesesAnoCorrentePonderado?.() || this.getMesesAnoCorrente?.() || [];
+      const linhas = meses.map(({ano:a,mes}) => {
+        const calc = this.getHistoricoMesCalculado ? this.getHistoricoMesCalculado(a,mes) : 0;
+        const final = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(a,mes) : calc;
+        const ajuste = this.getHistoricoAjuste ? this.parseNum(this.getHistoricoAjuste(a,mes).ajuste||0) : (final-calc);
+        return {ref:`${this.v64MesNome?.(mes) || mes}/${a}`, calculado:calc, ajuste, considerado:final};
+      }).filter(l => Math.abs(l.calculado||0)>0.00001 || Math.abs(l.ajuste||0)>0.00001 || Math.abs(l.considerado||0)>0.00001);
+      const rfAno = this.parseNum(resumo.rfAno || 0);
+      if(Math.abs(rfAno)>0.00001){
+        linhas.push({ref:`RF anual/${ano}`, calculado:rfAno, ajuste:0, considerado:rfAno, obs:`RF anual integral considerada: ${this.fmt(rfAno)}`});
+      }
+      const cards = `<div class="v64-memory-total"><div class="v64-memory-kpi"><span>Total no ano</span><strong>${this.fmt(resumo.total||0)}</strong></div><div class="v64-memory-kpi"><span>Média</span><strong>${this.fmt(resumo.media||0)}/mês</strong></div><div class="v64-memory-kpi"><span>Meses considerados</span><strong>${resumo.meses||1}</strong></div></div>`;
+      const serie = this.v72SerieAporteAnual?.() || [];
+      let body = cards + this.v72ChartBlock('aporte', serie) + `<div class="table-wrap"><table class="v64-memory-table"><thead><tr><th>Referência</th><th>Calculado</th><th>Ajuste manual</th><th>Considerado</th><th>Observação</th></tr></thead><tbody>`;
+      body += linhas.length ? linhas.map(l => `<tr><td>${this.esc(l.ref)}</td><td style="font-family:var(--font-mono)">${this.fmt(l.calculado||0)}</td><td style="font-family:var(--font-mono)">${this.fmt(l.ajuste||0)}</td><td style="font-family:var(--font-mono);font-weight:800">${this.fmt(l.considerado||0)}</td><td>${this.esc(l.obs||'Histórico anual / aportes registrados')}</td></tr>`).join('') : `<tr><td colspan="5"><div class="empty-smart">Nenhum valor de aporte identificado no ano corrente.</div></td></tr>`;
+      body += '</tbody></table></div>';
+      this.abrirModalMemoria?.('Aporte no ano', `<strong>Base:</strong> ${ano} · RF anual integral dividida pelos meses considerados.`, body);
+      setTimeout(() => this.v72GraficoMemoria?.('v72ChartAporteAno', serie, 'aporte'), 30);
+    };
+
+    A.abrirMemoriaRendaAnoV64 = function(){
+      const ano = new Date().getFullYear();
+      const resumo = this.getRendaAnoCorrentePonderadoResumo?.() || this.getRendaAnoCorrenteResumo?.() || {total:0,media:0,meses:1,totalDividendos:0,rfAno:0};
+      const meses = this.getMesesAnoCorrentePonderado?.() || this.getMesesAnoCorrente?.() || [];
+      const linhas = meses.map(({ano:a,mes}) => {
+        const item = this.getRendaManualMes ? this.getRendaManualMes(a,mes) : {};
+        const valor = this.parseNum(item.dividendos || 0);
+        return {ref:`${this.v64MesNome?.(mes) || mes}/${a}`, origem:'Dividendos/proventos', valor, obs: valor ? 'Lançado na tabela de Renda Passiva' : 'Sem lançamento'};
+      }).filter(l => Math.abs(l.valor||0)>0.00001);
+      const rfAno = this.parseNum(resumo.rfAno ?? resumo.totalRF ?? this.getRendaManualMes?.(ano,13).rendaFixa ?? 0);
+      if(Math.abs(rfAno)>0.00001){ linhas.push({ref:`RF anual/${ano}`, origem:'Renda fixa anual', valor:rfAno, obs:'Valor anual integral considerado na média do ano'}); }
+      const cards = `<div class="v64-memory-total"><div class="v64-memory-kpi"><span>Total no ano</span><strong>${this.fmt(resumo.total||0)}</strong></div><div class="v64-memory-kpi"><span>Média</span><strong>${this.fmt(resumo.media||0)}/mês</strong></div><div class="v64-memory-kpi"><span>Meses considerados</span><strong>${resumo.meses||1}</strong></div></div>`;
+      const serie = this.v72SerieRendaAnual?.() || [];
+      let body = cards + this.v72ChartBlock('renda', serie) + `<div class="table-wrap"><table class="v64-memory-table"><thead><tr><th>Referência</th><th>Origem</th><th>Valor considerado</th><th>Observação</th></tr></thead><tbody>`;
+      body += linhas.length ? linhas.map(l => `<tr><td>${this.esc(l.ref)}</td><td>${this.esc(l.origem)}</td><td style="font-family:var(--font-mono);font-weight:800">${this.fmt(l.valor||0)}</td><td>${this.esc(l.obs||'')}</td></tr>`).join('') : `<tr><td colspan="4"><div class="empty-smart">Nenhuma renda identificada no ano corrente.</div></td></tr>`;
+      body += '</tbody></table></div>';
+      this.abrirModalMemoria?.('Renda média no ano', `<strong>Base:</strong> ${ano} · RF anual integral dividida pelos meses considerados.`, body);
+      setTimeout(() => this.v72GraficoMemoria?.('v72ChartRendaAno', serie, 'renda'), 30);
+    };
+
+    // Sem compra: usa a mesma linha/badge de classe de maiores posições e rentabilidades.
+    A.v70RenderSemCompra = function(){
+      const list = document.getElementById('v70TopSemCompraList');
+      const summary = document.getElementById('v70TopSemCompraSummary');
+      if(!list) return;
+      const arr = this.v70GetAtivosSemCompra?.().slice(0,7) || [];
+      if(summary){
+        const primeiro = arr[0];
+        summary.innerHTML = `<div class="v63-top-kpi"><span>Mais antigo</span><strong>${primeiro?this.esc(primeiro.ticker):'—'}</strong><small>${primeiro?.last ? this.v70DataBR(primeiro.last) : 'sem dados'}</small></div><div class="v63-top-kpi"><span>Ativos</span><strong>${arr.length}</strong><small>listados</small></div>`;
+      }
+      list.innerHTML = arr.length ? arr.map((a,idx) => `
+        <div class="v63-position-row ${idx===0?'is-top':''}">
+          <div class="v63-rank">${idx+1}</div>
+          <div class="v63-position-main">
+            <div class="v63-position-line"><strong>${this.esc(a.ticker)}</strong><span>${this.esc(a.classe || 'Sem classe')}</span></div>
+            <div class="v63-position-bar"><i style="width:${Math.max(7, Math.min(100, idx===0?100:100-(idx*11)))}%"></i></div>
+          </div>
+          <div class="v63-position-value">
+            <strong class="v70-stale-date">${a.last ? this.v70DataBR(a.last) : '—'}</strong>
+            <span class="v70-stale-age">${this.v70TempoDesde(a.last)}</span>
+          </div>
+        </div>`).join('') : '<div class="empty-smart">Sem histórico de compras suficiente para montar este ranking.</div>';
+    };
+
+    const oldRenderConfigMetas = A.renderConfigMetasMacro?.bind(A);
+    A.renderConfigMetasMacro = function(){
+      if(!document.getElementById('configMetasMacro')) return oldRenderConfigMetas ? oldRenderConfigMetas(...arguments) : undefined;
+      const box = document.getElementById('configMetasMacro');
+      const total = Object.values(this.s.metasMacro || {}).reduce((s,v)=>s+v,0);
+      box.innerHTML = Object.entries(this.s.metasMacro || {}).map(([cl,v]) => `<div class="v72-meta-item"><label class="f-label">${this.esc(cl)}</label><div class="v72-meta-row"><input type="number" step="1" min="0" max="100" class="f-input macro-input" data-cl="${this.escAttr ? this.escAttr(cl) : cl}" value="${((v||0)*100).toFixed(0)}"><span class="mini-note">%</span></div></div>`).join('') + `<div class="v72-meta-item" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:${Math.round(total*100)===100?'var(--success-glow)':'var(--warning-glow)'};color:${Math.round(total*100)===100?'var(--success)':'var(--warning)'}"><span class="f-label" style="margin:0;color:inherit">Soma</span><strong>${(total*100).toFixed(0)}%</strong></div>`;
+    };
+
+    const oldRenderConfigStats = A.renderConfigStats?.bind(A);
+    A.renderConfigStats = function(){
+      const box = document.getElementById('configStats');
+      if(!box) return oldRenderConfigStats ? oldRenderConfigStats(...arguments) : undefined;
+      const anos = [...new Set((this.s.banco || []).map(t => t.ano || parseInt(String(this.normData?.(t.data || '') || '').slice(0,4))).filter(Boolean))].sort((a,b)=>a-b);
+      const ticks = [...new Set((this.s.banco || []).map(t => t.titulo || t.ticker).filter(Boolean))];
+      const custo = Object.values(this.s.posicaoAtual || {}).reduce((s,p)=>s+(p.custoTotal||0),0);
+      const rendaManualMeses = Object.keys(this.s.rendaManual || {}).length;
+      const last = this.loadJSON?.('wOS_autoBackupMeta', {})?.exportedAt;
+      const dolar = this.getDolarHoje?.() || this.s.dolarAtual || this.s.config?.dolarManual || 0;
+      box.classList.add('v72-stat-grid');
+      box.innerHTML = `
+        <div class="v72-stat-card"><span>Operações</span><strong>${(this.s.banco || []).length}</strong><small>linhas na base</small></div>
+        <div class="v72-stat-card"><span>Tickers</span><strong>${ticks.length}</strong><small>distintos</small></div>
+        <div class="v72-stat-card"><span>Período</span><strong>${anos[0]||'—'} – ${anos[anos.length-1]||'—'}</strong><small>anos importados</small></div>
+        <div class="v72-stat-card"><span>Custo investido</span><strong>${this.fmt(custo)}</strong><small>base consolidada</small></div>
+        <div class="v72-stat-card"><span>Renda manual</span><strong>${rendaManualMeses}</strong><small>mês(es) lançados</small></div>
+        <div class="v72-stat-card"><span>Dólar usado</span><strong>R$ ${this.fmtN(dolar,4)}</strong><small>configuração/cotação</small></div>
+        <div class="v72-stat-card"><span>Cotações ao abrir</span><strong>${this.s.config?.autoCotacaoAoAbrir !== false ? 'Ativo' : 'Inativo'}</strong><small>preferência do sistema</small></div>
+        <div class="v72-stat-card"><span>Último backup</span><strong>${last ? new Date(last).toLocaleDateString('pt-BR') : '—'}</strong><small>${last ? new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : 'sem registro'}</small></div>`;
+      this.renderBackupInfo?.();
+      this.v72RefreshDolarPill?.();
+    };
+
+    const wrap = (name) => {
+      const old = A[name]?.bind(A);
+      if(!old || old.__v72Wrapped) return;
+      const fn = function(){ const ret = old(...arguments); setTimeout(() => { try{ this.v72RefreshDolarPill?.(); if(name === 'renderizarDashboard') this.v70RenderSemCompra?.(); }catch(e){} }, 0); return ret; };
+      fn.__v72Wrapped = true;
+      A[name] = fn;
+    };
+    ['init','atualizarTudo','renderizarDashboard','renderizarDashboardV46','buscarCotacoes','salvarConfig','renderConfigStats','renderConfigMetasMacro','v70ApplyDashboardHierarchy'].forEach(wrap);
+
+    setTimeout(() => {
+      try{
+        A.v72RefreshDolarPill?.();
+        A.renderConfigStats?.();
+        A.renderConfigMetasMacro?.();
+        A.renderizarDashboard?.();
+      }catch(e){ console.error('v72 ajustes iniciais', e); }
+    }, 220);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV72, 180));
+  installV72();
+  window.addEventListener('load', () => setTimeout(installV72, 220));
+})();
+</script>
+<style id="v73-produtividade-css">
+/* ── V73: central de pendências, modos de trabalho e polimento visual ── */
+:root{--v73-card-pad:16px;}
+.v73-nav-badge{margin-left:auto;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:var(--danger-glow);color:var(--danger);border:1px solid rgba(240,79,79,.35);font-family:var(--font-mono);font-size:11px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.v73-nav-badge.ok{background:var(--success-glow);color:var(--success);border-color:rgba(34,208,122,.35);}
+.v73-top-pending{background:linear-gradient(180deg,var(--bg-surface),var(--bg-card));}
+.v73-top-pending.warn{border-color:rgba(240,180,41,.42);color:var(--warning);}
+.v73-top-pending.danger{border-color:rgba(240,79,79,.48);color:var(--danger);}
+.v73-top-pending.ok{border-color:rgba(34,208,122,.42);color:var(--success);}
+.v73-pending-hero{display:grid;grid-template-columns:minmax(290px,1.1fr) minmax(240px,.9fr);gap:16px;margin-bottom:18px;}
+.v73-pending-hero-card{border:1px solid var(--border-bright);border-radius:16px;background:linear-gradient(135deg,var(--bg-surface),var(--bg-card));padding:18px;box-shadow:var(--shadow);}
+.v73-pending-title{font-family:var(--font-display);font-size:24px;font-weight:900;letter-spacing:-.4px;margin:6px 0 8px;}
+.v73-pending-sub{color:var(--text-muted);font-size:13px;line-height:1.45;max-width:760px;}
+.v73-pending-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.v73-pending-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;}
+.v73-pending-kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;min-height:82px;}
+.v73-pending-kpi span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);font-weight:900;margin-bottom:5px;}
+.v73-pending-kpi strong{display:block;font-family:var(--font-display);font-size:24px;font-weight:900;line-height:1;}
+.v73-pending-kpi small{display:block;color:var(--text-muted);font-size:11px;margin-top:5px;}
+.v73-pending-layout{display:grid;grid-template-columns:minmax(260px,.38fr) minmax(420px,1fr);gap:16px;align-items:start;}
+.v73-pending-sidebar{position:sticky;top:0;display:flex;flex-direction:column;gap:10px;}
+.v73-filter-card{border:1px solid var(--border);background:var(--bg-surface);border-radius:14px;padding:14px;}
+.v73-filter-card .f-label{margin-bottom:8px;}
+.v73-filter-chips{display:flex;gap:7px;flex-wrap:wrap;}
+.v73-filter-chip{border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);border-radius:999px;padding:6px 9px;font-size:11.5px;font-weight:800;cursor:pointer;}
+.v73-filter-chip.active,.v73-filter-chip:hover{border-color:var(--primary);background:var(--primary-glow);color:var(--primary);}
+.v73-pending-list{display:flex;flex-direction:column;gap:10px;}
+.v73-issue-card{border:1px solid var(--border);background:var(--bg-surface);border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;cursor:pointer;transition:.18s;}
+.v73-issue-card:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:var(--shadow);}
+.v73-issue-card.danger{border-left:4px solid var(--danger);}
+.v73-issue-card.warning{border-left:4px solid var(--warning);}
+.v73-issue-card.info{border-left:4px solid var(--primary);}
+.v73-issue-card.success{border-left:4px solid var(--success);}
+.v73-issue-main strong{font-family:var(--font-display);font-size:15px;display:block;margin-bottom:4px;}
+.v73-issue-meta{color:var(--text-muted);font-size:12px;line-height:1.4;}
+.v73-issue-route{display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:var(--bg-card);font-size:11px;color:var(--text-muted);font-weight:800;}
+.v73-issue-card:hover .v73-issue-route{border-color:var(--primary);color:var(--primary);}
+.v73-issue-badge{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;font-weight:900;padding:4px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;}
+.v73-issue-badge.danger{color:var(--danger);background:var(--danger-glow);}
+.v73-issue-badge.warning{color:var(--warning);background:var(--warning-glow);}
+.v73-issue-badge.info{color:var(--primary);background:var(--primary-glow);}
+.v73-issue-badge.success{color:var(--success);background:var(--success-glow);}
+.v73-dashboard-pending{border:1px solid var(--border-bright);border-radius:15px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-card));padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:minmax(220px,.55fr) minmax(320px,1fr) auto;gap:12px;align-items:center;}
+.v73-dashboard-pending strong{font-family:var(--font-display);font-size:16px;}
+.v73-dashboard-pending .mini-note{line-height:1.35;}
+.v73-dashboard-pending-list{display:flex;gap:8px;flex-wrap:wrap;}
+.v73-dashboard-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;border:1px solid var(--border);background:var(--bg-card);font-size:11.5px;color:var(--text-muted);font-weight:800;}
+.v73-dashboard-pill.danger{color:var(--danger);border-color:rgba(240,79,79,.36);background:var(--danger-glow);}
+.v73-dashboard-pill.warning{color:var(--warning);border-color:rgba(240,180,41,.36);background:var(--warning-glow);}
+.v73-dashboard-pill.info{color:var(--primary);border-color:rgba(61,142,240,.36);background:var(--primary-glow);}
+.v73-ativos-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);}
+.v73-ativos-toolbar .mini-note{margin-right:auto;}
+.v73-toggle-group{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--bg-surface);}
+.v73-toggle-btn{border:0;background:transparent;color:var(--text-muted);padding:6px 10px;font-family:var(--font-body);font-size:11.5px;font-weight:800;cursor:pointer;}
+.v73-toggle-btn.active{background:var(--primary-glow);color:var(--primary);}
+.v73-quick-filter{border:1px solid var(--border);background:var(--bg-surface);color:var(--text-muted);border-radius:999px;padding:6px 9px;font-size:11.5px;font-weight:800;cursor:pointer;}
+.v73-quick-filter.active,.v73-quick-filter:hover{color:var(--primary);border-color:var(--primary);background:var(--primary-glow);}
+#view-ativos.v73-mode-compact .ativos-table th:nth-child(3),#view-ativos.v73-mode-compact .ativos-table td:nth-child(3),
+#view-ativos.v73-mode-compact .ativos-table th:nth-child(4),#view-ativos.v73-mode-compact .ativos-table td:nth-child(4),
+#view-ativos.v73-mode-compact .ativos-table th:nth-child(5),#view-ativos.v73-mode-compact .ativos-table td:nth-child(5),
+#view-ativos.v73-mode-compact .ativos-table th:nth-child(8),#view-ativos.v73-mode-compact .ativos-table td:nth-child(8){display:none!important;}
+#view-ativos.v73-mode-edicao .ativos-table th:nth-child(2),#view-ativos.v73-mode-edicao .ativos-table td:nth-child(2),
+#view-ativos.v73-mode-edicao .ativos-table th:nth-child(3),#view-ativos.v73-mode-edicao .ativos-table td:nth-child(3),
+#view-ativos.v73-mode-edicao .ativos-table th:nth-child(4),#view-ativos.v73-mode-edicao .ativos-table td:nth-child(4),
+#view-ativos.v73-mode-edicao .ativos-table th:nth-child(5),#view-ativos.v73-mode-edicao .ativos-table td:nth-child(5),
+#view-ativos.v73-mode-edicao .ativos-table th:nth-child(8),#view-ativos.v73-mode-edicao .ativos-table td:nth-child(8){display:none!important;}
+#view-ativos.v73-mode-analise .ativos-table th:nth-child(10),#view-ativos.v73-mode-analise .ativos-table td:nth-child(10),
+#view-ativos.v73-mode-analise .ativos-table th:nth-child(11),#view-ativos.v73-mode-analise .ativos-table td:nth-child(11){display:none!important;}
+.v73-row-hidden{display:none!important;}
+.v73-group-muted{opacity:.45;}
+.v73-proximo-tools{border:1px solid var(--border);background:var(--bg-card);border-radius:12px;padding:10px;margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.v73-config-status{max-width:1240px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;}
+.v73-config-status-card{background:linear-gradient(180deg,var(--bg-surface),var(--bg-card));border:1px solid var(--border);border-radius:12px;padding:12px;}
+.v73-config-status-card span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);font-weight:900;margin-bottom:5px;}
+.v73-config-status-card strong{font-family:var(--font-display);font-size:19px;font-weight:900;}
+.v73-config-status-card small{display:block;color:var(--text-muted);font-size:11px;margin-top:3px;}
+#view-config.v73-config-compact .config-grid-v72{grid-template-columns:minmax(360px,.95fr) minmax(340px,1fr);}
+#view-config.v73-config-compact .config-grid-v72 .card{padding:16px;}
+#view-config.v73-config-compact .config-grid-v72 .info-box{font-size:12px;padding:10px 12px;}
+.v73-copy-ok{color:var(--success)!important;border-color:rgba(34,208,122,.4)!important;background:var(--success-glow)!important;}
+@media(max-width:980px){.v73-pending-hero,.v73-pending-layout,.v73-dashboard-pending{grid-template-columns:1fr}.v73-pending-sidebar{position:relative}.v73-dashboard-pending .btn{width:max-content}}
+</style>
+<script id="v73-produtividade-script">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function cssEscape(v){ return String(v||'').replace(/[^a-zA-Z0-9_-]/g, s => '\\' + s.charCodeAt(0).toString(16) + ' '); }
+  function installV73(){
+    const A = getApp();
+    if(!A || A.__v73ProdutividadeInstalada) return;
+    A.__v73ProdutividadeInstalada = true;
+    A.VERSAO_SISTEMA = 'v73_central_pendencias_produtividade';
+    document.title = 'Patrimônio OS · v73 Central de Pendências';
+    const brandSub = document.querySelector('.brand sub');
+    if(brandSub) brandSub.textContent = 'v73 · central de pendências';
+
+    A.v73LevelLabel = function(level){ return level === 'danger' ? 'Crítico' : level === 'warning' ? 'Revisar' : level === 'success' ? 'OK' : 'Informativo'; };
+    A.v73LevelIcon = function(level){ return level === 'danger' ? 'ph-warning-octagon' : level === 'warning' ? 'ph-warning-circle' : level === 'success' ? 'ph-check-circle' : 'ph-info'; };
+    A.v73RouteName = function(view){
+      return ({'view-aportes':'Operações','view-ativos':'Meus Ativos','view-config':'Configurações','view-proximo-aporte':'Próximo Aporte','view-renda':'Renda Passiva','view-historico':'Aporte Anual','view-ir':'IRPF','view-dashboard':'Dashboard'})[view] || 'Abrir';
+    };
+
+    A.v73EnsureUI = function(){
+      const navPrincipal = document.querySelector('.nav-group');
+      if(navPrincipal && !document.querySelector('.nav-item[data-view="view-pendencias"]')){
+        const item = document.createElement('div');
+        item.className = 'nav-item';
+        item.dataset.view = 'view-pendencias';
+        item.innerHTML = '<i class="ph ph-warning-circle"></i> Pendências <span id="v73NavPendBadge" class="v73-nav-badge">0</span>';
+        item.addEventListener('click', () => this.navigate('view-pendencias', item));
+        const after = document.querySelector('.nav-item[data-view="view-dashboard"]');
+        if(after && after.parentNode) after.parentNode.insertBefore(item, after.nextSibling); else navPrincipal.appendChild(item);
+      }
+      const top = document.querySelector('.top-bar > div:last-child');
+      if(top && !document.getElementById('v73PendingTopPill')){
+        const pill = document.createElement('div');
+        pill.id = 'v73PendingTopPill';
+        pill.className = 'status-pill v73-top-pending';
+        pill.title = 'Clique para abrir a Central de Pendências';
+        pill.innerHTML = '<i class="ph ph-warning-circle" style="font-size:15px"></i><span>0 pendências</span>';
+        pill.onclick = () => this.navigate('view-pendencias', document.querySelector('.nav-item[data-view="view-pendencias"]'));
+        const ref = document.querySelector('.v72-dollar-pill');
+        top.insertBefore(pill, ref ? ref.nextSibling : top.firstChild);
+      }
+      const main = document.querySelector('main.main-content');
+      if(main && !document.getElementById('view-pendencias')){
+        const sec = document.createElement('section');
+        sec.className = 'view';
+        sec.id = 'view-pendencias';
+        sec.innerHTML = `
+          <div class="v73-pending-hero">
+            <div class="v73-pending-hero-card">
+              <div class="decision-eyebrow">Central de produtividade</div>
+              <div class="v73-pending-title">Pendências acionáveis</div>
+              <div class="v73-pending-sub">Cada alerta já sabe para onde levar: operações, ativos, configurações, IRPF, renda ou histórico. Use esta tela como checklist antes de aportar, importar notas ou fechar IRPF.</div>
+              <div class="v73-pending-actions">
+                <button class="btn btn-primary" onclick="app.reprocessarBase(true); app.renderizarPendenciasV73();"><i class="ph ph-arrows-clockwise"></i> Reprocessar e validar</button>
+                <button class="btn btn-outline" onclick="app.limparAuditoriasIgnoradas?.(); app.renderizarPendenciasV73();"><i class="ph ph-eye"></i> Restaurar ignoradas</button>
+                <button class="btn btn-outline" onclick="app.copiarResumoPendenciasV73()"><i class="ph ph-copy"></i> Copiar resumo</button>
+              </div>
+            </div>
+            <div class="v73-pending-grid" id="v73PendKpis"></div>
+          </div>
+          <div class="v73-pending-layout">
+            <aside class="v73-pending-sidebar">
+              <div class="v73-filter-card">
+                <label class="f-label">Filtrar por severidade</label>
+                <div class="v73-filter-chips" id="v73SeverityFilters">
+                  <button class="v73-filter-chip active" data-filter="ALL" onclick="app.setFiltroPendenciasV73('ALL')">Todas</button>
+                  <button class="v73-filter-chip" data-filter="danger" onclick="app.setFiltroPendenciasV73('danger')">Críticas</button>
+                  <button class="v73-filter-chip" data-filter="warning" onclick="app.setFiltroPendenciasV73('warning')">Revisar</button>
+                  <button class="v73-filter-chip" data-filter="info" onclick="app.setFiltroPendenciasV73('info')">Info</button>
+                </div>
+              </div>
+              <div class="v73-filter-card">
+                <label class="f-label">Buscar</label>
+                <input class="f-input" id="v73PendSearch" oninput="app.renderizarPendenciasV73()" placeholder="Ticker, classe, PTAX, IRPF..." type="text">
+              </div>
+              <div class="v73-filter-card">
+                <label class="f-label">Atalhos</label>
+                <div class="v73-filter-chips">
+                  <button class="v73-filter-chip" onclick="app.v73GoTo('view-config')">Configurações</button>
+                  <button class="v73-filter-chip" onclick="app.v73GoTo('view-aportes')">Operações</button>
+                  <button class="v73-filter-chip" onclick="app.v73GoTo('view-ativos')">Ativos</button>
+                  <button class="v73-filter-chip" onclick="app.v73GoTo('view-ir')">IRPF</button>
+                </div>
+              </div>
+            </aside>
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-hd"><div class="card-title"><i class="ph-fill ph-list-checks"></i> Lista de pendências</div><span class="mini-note" id="v73PendListNote"></span></div>
+              <div class="v73-pending-list" id="v73PendList"></div>
+            </div>
+          </div>`;
+        const cfg = document.getElementById('view-config');
+        main.insertBefore(sec, cfg || null);
+      }
+    };
+
+    A.v73BaseAtivos = function(){
+      const ativos = this.getAtivosConsolidados?.() || [];
+      return ativos.map(a => {
+        const cot = this.getCotacaoConvertidaBRL?.(a) || 0;
+        const vm = cot > 0 ? cot * (Number(a.qtd||0)) : (Number(a._vm||a.valorMercado||a.custoTotal||0));
+        return {...a, _v73vm: vm, _v73cot: cot};
+      });
+    };
+
+    A.getPendenciasBaseV73 = function(){
+      const out = [];
+      const add = (level, titulo, detalhe, opts={}) => {
+        out.push({ id:'p'+out.length, level:level||'info', titulo:String(titulo||''), detalhe:String(detalhe||''), categoria:opts.categoria||'Geral', view:opts.view||'view-dashboard', ticker:opts.ticker||'', action:opts.action||'', query:opts.query||'', tipo:opts.tipo||'', ref:opts.ref||'' });
+      };
+      const banco = this.s?.banco || [];
+      banco.forEach((tx, idx) => {
+        const ticker = String(tx.titulo || tx.ativoOrigem || tx.tickerDestino || '').toUpperCase().trim();
+        const data = this.normData?.(tx.data || '') || String(tx.data || '');
+        const where = `${data || 'sem data'} · ${this.normalizarTitular?.(tx.quem || '') || 'sem titular'} · ${(tx.onde||'sem corretora').toString().toUpperCase()}`;
+        (this.validarRegistro?.(tx) || []).forEach(issue => {
+          add(issue.level || 'warning', `${ticker || 'Operação'} · ${issue.msg}`, where, {categoria:'Operações', view:'view-aportes', ticker, query:ticker, ref:tx.id || String(idx), action:'filtrarOperacoes'});
+        });
+        const tipo = this.normalizeTipo?.(tx.tipo || '') || String(tx.tipo||'').toUpperCase();
+        const local = this.normalizeLocal?.(tx.local || '') || String(tx.local||'').toUpperCase();
+        if(local === 'EXTERIOR' && ['COMPRA','VENDA'].includes(tipo) && !(this.parseNum?.(tx.ptax) > 0) && (this.parseNum?.(tx.valorDolar) > 0 || this.parseNum?.(tx.valorOp) > 0)){
+          add('danger', `${ticker || 'Exterior'} · PTAX ausente`, `${where} · informe a PTAX da data da negociação.`, {categoria:'PTAX', view:'view-config', ticker, ref:tx.id || String(idx), action:'ptax'});
+        }
+      });
+
+      (this.calcularAuditoria?.() || []).forEach(i => {
+        const m = String(i.titulo||'').match(/·\s*([A-Z0-9.]{2,12})/);
+        const ticker = m ? m[1] : '';
+        const isCot = /Sem cotação/i.test(i.titulo||'');
+        add(i.level || 'warning', i.titulo, i.detalhe || '', {categoria:'Auditoria', view:isCot?'view-config':'view-aportes', ticker, query:ticker, action:isCot?'cotacao':'filtrarOperacoes'});
+      });
+
+      const ativos = this.v73BaseAtivos?.() || [];
+      const classes = {};
+      ativos.forEach(a => { if(!a.planejado && Number(a.qtd||0) <= 0.00001) return; (classes[a.classe || 'Sem classe'] ||= []).push(a); });
+      ativos.forEach(a => {
+        const ticker = String(a.ticker||'').toUpperCase();
+        if(!ticker) return;
+        if(!a.classe || a.classe === 'AUTO') add('warning', `${ticker} · classe não definida`, 'Defina a classe em Meus Ativos para evitar distorções no rebalanceamento e no IRPF.', {categoria:'Ativos', view:'view-ativos', ticker, query:ticker, action:'filtroAtivos'});
+        if(!(parseFloat(this.s?.metasAtivos?.[ticker]) > 0) && ['AÇÃO','FUNDO IMOBILIÁRIO','STOCK','REIT','ETF','ETF IRLANDÊS','CRIPTO'].includes(a.classe)) add('warning', `${ticker} · meta individual ausente`, 'Informe o peso planejado dentro do grupo para melhorar o Próximo Aporte.', {categoria:'Metas', view:'view-ativos', ticker, query:ticker, action:'filtroAtivos'});
+        if(!a.planejado && Number(a.qtd||0) > 0.00001 && !(a._v73cot > 0) && !(this.s?.cotacoes?.[ticker] > 0)) add('warning', `${ticker} · sem cotação`, 'O valor atual pode estar usando custo ou ficar incompleto. Revise fonte de cotações/configurações.', {categoria:'Cotações', view:'view-config', ticker, action:'cotacao'});
+      });
+      Object.entries(classes).forEach(([classe, arr]) => {
+        const soma = arr.reduce((s,a)=>s+(parseFloat(this.s?.metasAtivos?.[String(a.ticker||'').toUpperCase()]) || 0),0);
+        if(arr.length && soma > 0 && Math.abs(soma - 100) > 0.5){
+          add(soma > 100 ? 'danger' : 'warning', `${classe} · metas somam ${this.fmtN?.(soma,1) || soma.toFixed(1)}%`, 'A soma das metas internas do grupo deveria ficar em 100% para o rebalanceamento ficar consistente.', {categoria:'Metas', view:'view-ativos', query:classe, action:'classeAtivos'});
+        }
+      });
+      const metaTotal = Object.values(this.s?.metasMacro || {}).reduce((s,v)=>s+(Number(v)||0),0) * 100;
+      if(Math.abs(metaTotal - 100) > 0.5){
+        add('danger', `Metas macro somam ${this.fmtN?.(metaTotal,1) || metaTotal.toFixed(1)}%`, 'A soma das metas macro por classe deve ser 100%. Corrija em Configurações.', {categoria:'Configurações', view:'view-config', action:'metasMacro'});
+      }
+      const stale = (this.v70GetAtivosSemCompra?.() || []).filter(x => x.last).map(x => {
+        const d = new Date(String(x.last).slice(0,10) + 'T12:00:00');
+        const dias = Math.floor((new Date() - d) / 86400000);
+        return {...x, dias};
+      }).filter(x => x.dias >= 180).slice(0,5);
+      stale.forEach(x => add('info', `${x.ticker} · ${x.dias} dias sem compra`, `Última compra: ${this.v70DataBR?.(x.last) || x.last}. Use como sinal de revisão, não como ordem automática de compra.`, {categoria:'Aporte', view:'view-ativos', ticker:x.ticker, query:x.ticker, action:'filtroAtivos'}));
+
+      const anoAtual = new Date().getFullYear();
+      const rendaMeses = Object.keys(this.s?.rendaManual || {}).filter(k => k.startsWith(String(anoAtual)+'-') && !k.endsWith('-13')).length;
+      if(rendaMeses === 0) add('info', `Renda ${anoAtual} sem lançamentos mensais`, 'Confira se a aba Renda Passiva está atualizada. Isso afeta renda média no ano e 12 meses.', {categoria:'Renda', view:'view-renda', action:'renda'});
+      return out.map((i,idx)=>({...i,id:'v73p'+idx}));
+    };
+
+    A.v73PendSummary = function(issues){
+      const c = {danger:0, warning:0, info:0, success:0, total:issues.length};
+      issues.forEach(i => { c[i.level] = (c[i.level]||0)+1; });
+      return c;
+    };
+
+    A.setFiltroPendenciasV73 = function(filtro){
+      this.s.v73PendFiltro = filtro || 'ALL';
+      document.querySelectorAll('#v73SeverityFilters .v73-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.filter === this.s.v73PendFiltro));
+      this.renderizarPendenciasV73();
+    };
+
+    A.renderizarPendenciasV73 = function(){
+      this.v73EnsureUI?.();
+      const all = this.getPendenciasBaseV73?.() || [];
+      this.s.v73PendenciasCache = all;
+      const filtro = this.s.v73PendFiltro || 'ALL';
+      const q = String(document.getElementById('v73PendSearch')?.value || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const matches = i => !q || [i.titulo,i.detalhe,i.categoria,i.ticker,this.v73RouteName(i.view)].join(' ').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q);
+      const issues = all.filter(i => (filtro === 'ALL' || i.level === filtro) && matches(i));
+      const sum = this.v73PendSummary(all);
+      const list = document.getElementById('v73PendList');
+      const kpis = document.getElementById('v73PendKpis');
+      const note = document.getElementById('v73PendListNote');
+      if(kpis){
+        kpis.innerHTML = `
+          <div class="v73-pending-kpi"><span>Total</span><strong>${sum.total}</strong><small>pendência(s) detectada(s)</small></div>
+          <div class="v73-pending-kpi"><span>Críticas</span><strong style="color:var(--danger)">${sum.danger||0}</strong><small>corrigir antes de confiar</small></div>
+          <div class="v73-pending-kpi"><span>Revisar</span><strong style="color:var(--warning)">${sum.warning||0}</strong><small>melhora cálculo/controle</small></div>
+          <div class="v73-pending-kpi"><span>Informativas</span><strong style="color:var(--primary)">${sum.info||0}</strong><small>sinais de acompanhamento</small></div>`;
+      }
+      if(note) note.textContent = `${issues.length} exibida(s) · ${all.length} no total`;
+      if(list){
+        if(!issues.length){
+          list.innerHTML = '<div class="audit-item a-info"><strong>Nenhuma pendência neste filtro</strong><div class="mini-note">Altere o filtro ou reprocessar a base para validar novamente.</div></div>';
+        } else {
+          list.innerHTML = issues.map(i => `<div class="v73-issue-card ${this.escAttr?.(i.level)||i.level}" onclick="app.corrigirPendenciaV73('${i.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){app.corrigirPendenciaV73('${i.id}');event.preventDefault();}">
+            <div class="v73-issue-main"><strong>${this.esc(i.titulo)}</strong><div class="v73-issue-meta">${this.esc(i.detalhe)}</div><span class="v73-issue-route"><i class="ph ph-arrow-bend-down-right"></i> Corrigir em ${this.esc(this.v73RouteName(i.view))}${i.ticker ? ' · '+this.esc(i.ticker) : ''}</span></div>
+            <span class="v73-issue-badge ${this.escAttr?.(i.level)||i.level}">${this.v73LevelLabel(i.level)}</span>
+          </div>`).join('');
+        }
+      }
+      this.v73RefreshBadges?.(all);
+      return all;
+    };
+
+    A.v73RefreshBadges = function(issues){
+      const all = issues || this.getPendenciasBaseV73?.() || [];
+      const sum = this.v73PendSummary(all);
+      const nav = document.getElementById('v73NavPendBadge');
+      if(nav){ nav.textContent = String(sum.total); nav.classList.toggle('ok', sum.total === 0); }
+      const pill = document.getElementById('v73PendingTopPill');
+      if(pill){
+        pill.classList.remove('ok','warn','danger');
+        pill.classList.add(sum.danger ? 'danger' : sum.warning ? 'warn' : 'ok');
+        const span = pill.querySelector('span');
+        if(span) span.textContent = sum.total ? `${sum.total} pendência${sum.total>1?'s':''}` : 'Sem pendências';
+      }
+      this.renderDashboardPendenciasV73?.(all);
+    };
+
+    A.renderDashboardPendenciasV73 = function(issues){
+      const dash = document.getElementById('view-dashboard');
+      if(!dash) return;
+      let box = document.getElementById('v73DashboardPending');
+      const anchor = document.getElementById('v70Line2') || document.querySelector('#view-dashboard > .desktop-command-grid') || document.querySelector('#view-dashboard > .card');
+      if(!box){
+        box = document.createElement('div');
+        box.id = 'v73DashboardPending';
+        box.className = 'v73-dashboard-pending';
+        if(anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor); else dash.prepend(box);
+      }
+      const all = issues || this.getPendenciasBaseV73?.() || [];
+      const top = all.slice(0,3);
+      const sum = this.v73PendSummary(all);
+      box.innerHTML = `<div><strong><i class="ph-fill ph-warning-circle" style="color:${sum.danger?'var(--danger)':sum.warning?'var(--warning)':'var(--success)'}"></i> Central de Pendências</strong><div class="mini-note">${sum.total ? `${sum.danger||0} críticas · ${sum.warning||0} para revisar · ${sum.info||0} infos` : 'Base sem pendências nas validações atuais.'}</div></div><div class="v73-dashboard-pending-list">${top.length ? top.map(i=>`<span class="v73-dashboard-pill ${this.escAttr?.(i.level)||i.level}">${this.esc(i.titulo)}</span>`).join('') : '<span class="v73-dashboard-pill info">Tudo certo por enquanto</span>'}</div><button class="btn btn-outline btn-sm" onclick="app.navigate('view-pendencias', document.querySelector('.nav-item[data-view=\'view-pendencias\']'))"><i class="ph ph-arrow-right"></i> Abrir</button>`;
+    };
+
+    A.v73GoTo = function(view, opts={}){
+      this.navigate(view, document.querySelector(`.nav-item[data-view="${view}"]`));
+      setTimeout(() => {
+        if(view === 'view-aportes'){
+          const q = document.getElementById('filtroBusca'); if(q){ q.value = opts.query || opts.ticker || ''; }
+          if(opts.tipo){ const t = document.getElementById('filtroTipo'); if(t) t.value = opts.tipo; }
+          this.irParaPagina?.(1); document.getElementById('tbAportes')?.closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+        }
+        if(view === 'view-ativos'){
+          const f = document.getElementById('filtroTickerAtivos'); if(f){ f.value = opts.query || opts.ticker || ''; }
+          this.renderizarAtivos?.(); this.filtrarTabelaAtivos?.(opts.query || opts.ticker || '');
+          document.getElementById('tbAtivos')?.closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+        }
+        if(view === 'view-config'){
+          this.renderConfigStats?.(); document.getElementById('view-config')?.scrollIntoView({behavior:'smooth',block:'start'});
+          if(opts.action === 'ptax') document.getElementById('ptaxDataInput')?.focus();
+          else if(opts.action === 'metasMacro') document.getElementById('configMetasMacro')?.scrollIntoView({behavior:'smooth',block:'center'});
+          else document.getElementById('inputBrapi')?.focus();
+        }
+        if(view === 'view-renda') this.renderizarRenda?.();
+        if(view === 'view-historico') this.renderizarHistorico?.();
+        if(view === 'view-ir') this.renderizarIR?.();
+      }, 120);
+    };
+
+    A.corrigirPendenciaV73 = function(id){
+      const item = (this.s.v73PendenciasCache || this.getPendenciasBaseV73?.() || []).find(x => x.id === id);
+      if(!item) return;
+      this.v73GoTo(item.view, item);
+      this.toast?.(`Abrindo ${this.v73RouteName(item.view)} para corrigir: ${item.titulo}`, 'info');
+    };
+
+    A.copiarResumoPendenciasV73 = async function(){
+      const issues = this.getPendenciasBaseV73?.() || [];
+      const txt = issues.length ? issues.map((i,idx)=>`${idx+1}. [${this.v73LevelLabel(i.level)}] ${i.titulo} — ${i.detalhe} (${this.v73RouteName(i.view)})`).join('\n') : 'Sem pendências abertas nas validações atuais.';
+      try{ await navigator.clipboard.writeText(txt); this.toast?.('Resumo de pendências copiado.', 'success'); }
+      catch(e){ this.toast?.('Não foi possível copiar automaticamente.', 'warning'); }
+    };
+
+    A.v73EnsureAtivosTools = function(){
+      const view = document.getElementById('view-ativos');
+      const filterBar = document.getElementById('filtroTickerAtivos')?.parentElement;
+      if(!view || !filterBar || document.getElementById('v73AtivosToolbar')) return;
+      const bar = document.createElement('div');
+      bar.id = 'v73AtivosToolbar';
+      bar.className = 'v73-ativos-toolbar';
+      bar.innerHTML = `
+        <span class="mini-note"><strong>Modo de trabalho:</strong></span>
+        <span class="v73-toggle-group">
+          <button class="v73-toggle-btn active" data-mode="compact" onclick="app.setModoAtivosV73('compact')">Compacto</button>
+          <button class="v73-toggle-btn" data-mode="analise" onclick="app.setModoAtivosV73('analise')">Análise</button>
+          <button class="v73-toggle-btn" data-mode="edicao" onclick="app.setModoAtivosV73('edicao')">Edição</button>
+        </span>
+        <button class="v73-quick-filter" data-filter="ALL" onclick="app.setFiltroAtivosRapidoV73('ALL')">Todos</button>
+        <button class="v73-quick-filter" data-filter="SEM_META" onclick="app.setFiltroAtivosRapidoV73('SEM_META')">Sem meta</button>
+        <button class="v73-quick-filter" data-filter="SEM_COTACAO" onclick="app.setFiltroAtivosRapidoV73('SEM_COTACAO')">Sem cotação</button>
+        <button class="v73-quick-filter" data-filter="APORTAR" onclick="app.setFiltroAtivosRapidoV73('APORTAR')">Com aporte sugerido</button>
+        <button class="v73-quick-filter" data-filter="ACIMA" onclick="app.setFiltroAtivosRapidoV73('ACIMA')">Acima da meta</button>
+        <button class="btn btn-outline btn-sm" onclick="app.navigate('view-pendencias', document.querySelector('.nav-item[data-view=\'view-pendencias\']'))"><i class="ph ph-warning-circle"></i> Ver pendências</button>`;
+      filterBar.parentNode.insertBefore(bar, filterBar.nextSibling);
+      this.setModoAtivosV73(this.s.v73ModoAtivos || 'compact', true);
+      this.setFiltroAtivosRapidoV73(this.s.v73FiltroAtivos || 'ALL', true);
+    };
+
+    A.setModoAtivosV73 = function(mode, silent){
+      this.s.v73ModoAtivos = mode || 'compact';
+      const view = document.getElementById('view-ativos'); if(!view) return;
+      view.classList.remove('v73-mode-compact','v73-mode-analise','v73-mode-edicao');
+      view.classList.add('v73-mode-' + this.s.v73ModoAtivos);
+      document.querySelectorAll('#v73AtivosToolbar .v73-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === this.s.v73ModoAtivos));
+      if(!silent) this.toast?.(`Modo ${this.s.v73ModoAtivos} aplicado em Meus Ativos.`, 'info');
+    };
+
+    A.setFiltroAtivosRapidoV73 = function(filter, silent){
+      this.s.v73FiltroAtivos = filter || 'ALL';
+      document.querySelectorAll('#v73AtivosToolbar .v73-quick-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === this.s.v73FiltroAtivos));
+      this.aplicarFiltroAtivosRapidoV73?.();
+      if(!silent && filter !== 'ALL') this.toast?.('Filtro rápido aplicado em Meus Ativos.', 'info');
+    };
+
+    A.aplicarFiltroAtivosRapidoV73 = function(){
+      const filter = this.s.v73FiltroAtivos || 'ALL';
+      const rows = [...document.querySelectorAll('#tbAtivos tr')];
+      let currentGroup = '';
+      rows.forEach(r => {
+        r.classList.remove('v73-row-hidden','v73-group-muted');
+        if(r.classList.contains('grupo-header')){ currentGroup = (r.textContent||'').trim().split('\n')[0].trim(); return; }
+        const t = (r.children[0]?.textContent || '').trim().split(/\s+/)[0].toUpperCase();
+        const metaTxt = r.children[10]?.querySelector('input')?.value || '';
+        const cotTxt = r.children[4]?.textContent || '';
+        const aportarTxt = r.children[8]?.textContent || '';
+        let hide = false;
+        if(filter === 'SEM_META') hide = parseFloat(String(metaTxt).replace(',','.')) > 0;
+        if(filter === 'SEM_COTACAO') hide = !/[—-]/.test(cotTxt) && !/0,00/.test(cotTxt);
+        if(filter === 'APORTAR') hide = !/R\$/.test(aportarTxt);
+        if(filter === 'ACIMA') hide = !/Acima|↑/.test(aportarTxt);
+        r.classList.toggle('v73-row-hidden', hide);
+        r.dataset.v73Ticker = t;
+        r.dataset.v73Group = currentGroup;
+      });
+      rows.forEach((r, idx) => {
+        if(!r.classList.contains('grupo-header')) return;
+        let has = false;
+        for(let i=idx+1;i<rows.length && !rows[i].classList.contains('grupo-header');i++){
+          if(!rows[i].classList.contains('v73-row-hidden')) { has = true; break; }
+        }
+        r.classList.toggle('v73-row-hidden', !has && filter !== 'ALL');
+      });
+    };
+
+    A.v73EnsureProximoTools = function(){
+      const resumo = document.getElementById('proximoAporteResumo');
+      if(!resumo || document.getElementById('v73ProximoTools')) return;
+      const tools = document.createElement('div');
+      tools.id = 'v73ProximoTools';
+      tools.className = 'v73-proximo-tools';
+      tools.innerHTML = `
+        <button class="btn btn-outline btn-sm" onclick="app.v73OrdenarSugestoesClasse = !app.v73OrdenarSugestoesClasse; app.renderizarProximoAporte?.(); app.mostrarSugestoesAporte?.(false);"><i class="ph ph-sort-ascending"></i> Ordenar por classe</button>
+        <button class="btn btn-outline btn-sm" onclick="app.v73CopiarPlanoAporte()"><i class="ph ph-copy"></i> Copiar plano</button>
+        <button class="btn btn-outline btn-sm" onclick="app.v73AbrirPrimeiraSugestao()"><i class="ph ph-plus-circle"></i> Abrir 1º lançamento</button>
+        <span class="mini-note">Registro automático não é feito sem quantidade/preço. O botão abre o lançamento já com ticker e valor sugerido.</span>`;
+      resumo.parentNode.insertBefore(tools, resumo.nextSibling);
+    };
+
+    A.v73CopiarPlanoAporte = async function(){
+      const lista = this.s?.aporteSugestoesCache || [];
+      if(!lista.length){ this.toast?.('Calcule um aporte primeiro.', 'warning'); return; }
+      const txt = lista.map(i => `${i.classe} · ${i.ticker}: ${this.fmt(i.valor)}`).join('\n');
+      try{ await navigator.clipboard.writeText(txt); this.toast?.('Plano de aporte copiado.', 'success'); }
+      catch(e){ this.toast?.('Não foi possível copiar o plano.', 'warning'); }
+    };
+    A.v73AbrirPrimeiraSugestao = function(){
+      const item = (this.s?.aporteSugestoesCache || []).filter(i => Number(i.valor||0)>0).sort((a,b)=>Number(b.valor||0)-Number(a.valor||0))[0];
+      if(!item){ this.toast?.('Calcule um aporte primeiro.', 'warning'); return; }
+      this.abrirModalAporte?.();
+      setTimeout(() => {
+        const local = ['STOCK','REIT','ETF','ETF IRLANDÊS','CRIPTO'].includes(item.classe) ? 'EXTERIOR' : 'BRASIL';
+        const ticker = document.getElementById('formTicker'); if(ticker) ticker.value = item.ticker;
+        const tipo = document.getElementById('formTipo'); if(tipo) tipo.value = 'COMPRA';
+        const loc = document.getElementById('formLocal'); if(loc) loc.value = local;
+        const val = document.getElementById('formValorOp'); if(val) val.value = Number(item.valor||0).toFixed(2);
+        this.mudarTipoOp?.();
+      }, 30);
+    };
+
+    A.v73EnsureConfigStatus = function(){
+      const view = document.getElementById('view-config');
+      const grid = view?.querySelector('.config-grid-v72');
+      if(!view || !grid) return;
+      view.classList.add('v73-config-compact');
+      let status = document.getElementById('v73ConfigStatus');
+      if(!status){
+        status = document.createElement('div');
+        status.id = 'v73ConfigStatus';
+        status.className = 'v73-config-status';
+        grid.parentNode.insertBefore(status, grid);
+      }
+      const issues = this.getPendenciasBaseV73?.() || [];
+      const lastQuotes = localStorage.getItem('wOS_lastQuotesUpdate') || '';
+      const meta = this.loadJSON?.('wOS_autoBackupMeta', null);
+      const dolar = this.getDolarHoje?.() || this.s?.dolarAtual || this.s?.config?.dolarManual || 0;
+      const metaTotal = Object.values(this.s?.metasMacro || {}).reduce((s,v)=>s+(Number(v)||0),0)*100;
+      status.innerHTML = `
+        <div class="v73-config-status-card"><span>Dólar atual</span><strong>R$ ${this.fmtN?.(dolar,4) || Number(dolar||0).toFixed(4)}</strong><small>fallback/configuração</small></div>
+        <div class="v73-config-status-card"><span>Cotações</span><strong>${Object.keys(this.s?.cotacoes||{}).length}</strong><small>${lastQuotes ? new Date(lastQuotes).toLocaleString('pt-BR') : 'sem atualização registrada'}</small></div>
+        <div class="v73-config-status-card"><span>Metas macro</span><strong style="color:${Math.abs(metaTotal-100)<=.5?'var(--success)':'var(--warning)'}">${this.fmtN?.(metaTotal,1) || metaTotal.toFixed(1)}%</strong><small>soma das classes</small></div>
+        <div class="v73-config-status-card"><span>Pendências</span><strong style="color:${issues.some(i=>i.level==='danger')?'var(--danger)':issues.length?'var(--warning)':'var(--success)'}">${issues.length}</strong><small><a href="#" onclick="app.navigate('view-pendencias', document.querySelector('.nav-item[data-view=\'view-pendencias\']'));return false;" style="color:var(--primary)">abrir central</a></small></div>
+        <div class="v73-config-status-card"><span>Backup</span><strong>${meta?.exportedAt ? 'OK' : '—'}</strong><small>${meta?.exportedAt ? new Date(meta.exportedAt).toLocaleString('pt-BR') : 'sem backup automático'}</small></div>`;
+    };
+
+    A.exportarSomenteConfigV73 = function(){
+      const payload = {versao:this.VERSAO_SISTEMA, exportedAt:new Date().toISOString(), config:this.s.config, metasMacro:this.s.metasMacro, metasAtivos:this.s.metasAtivos, forcarClasse:this.s.forcarClasse, metaAtivosInfo:this.s.metaAtivosInfo, etfHoldings:this.s.etfHoldings, ptaxHistorico:this.s.ptaxHistorico};
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `config_patrimonio_${new Date().toISOString().slice(0,10)}.json`; a.click();
+      this.toast?.('Configurações exportadas.', 'success');
+    };
+
+    A.v73EnhanceConfigButtons = function(){
+      const backupCard = Array.from(document.querySelectorAll('#view-config .card')).find(c => /Backup/.test(c.textContent||''));
+      if(backupCard && !backupCard.querySelector('.v73-config-extra-btn')){
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline v73-config-extra-btn';
+        btn.innerHTML = '<i class="ph ph-sliders-horizontal"></i> Exportar só configurações';
+        btn.onclick = () => this.exportarSomenteConfigV73();
+        backupCard.querySelector('div[style*="flex-direction:column"]')?.appendChild(btn);
+      }
+      const statsCard = document.getElementById('configStats')?.closest('.card');
+      if(statsCard && !statsCard.querySelector('.v73-validate-btn')){
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary btn-sm v73-validate-btn';
+        btn.innerHTML = '<i class="ph ph-warning-circle"></i> Validar sistema';
+        btn.onclick = () => { this.renderizarPendenciasV73(); this.navigate('view-pendencias', document.querySelector('.nav-item[data-view="view-pendencias"]')); };
+        statsCard.querySelector('.card-hd')?.appendChild(btn);
+      }
+    };
+
+    const oldNavigate = A.navigate?.bind(A);
+    if(oldNavigate && !oldNavigate.__v73Wrapped){
+      const fn = function(viewId, el){
+        const ret = oldNavigate(viewId, el);
+        const titles = {'view-pendencias':'Pendências'};
+        if(titles[viewId]) document.getElementById('pageTitle').textContent = titles[viewId];
+        if(viewId === 'view-pendencias') setTimeout(() => this.renderizarPendenciasV73?.(), 40);
+        if(viewId === 'view-ativos') setTimeout(() => { this.v73EnsureAtivosTools?.(); this.aplicarFiltroAtivosRapidoV73?.(); }, 80);
+        if(viewId === 'view-proximo-aporte') setTimeout(() => this.v73EnsureProximoTools?.(), 80);
+        if(viewId === 'view-config') setTimeout(() => { this.v73EnsureConfigStatus?.(); this.v73EnhanceConfigButtons?.(); }, 80);
+        return ret;
+      };
+      fn.__v73Wrapped = true;
+      A.navigate = fn;
+    }
+
+    const wrap = (name, after) => {
+      const old = A[name]?.bind(A);
+      if(!old || old.__v73Wrapped) return;
+      const fn = function(){ const ret = old(...arguments); setTimeout(() => { try{ after.call(this, name); }catch(e){ console.warn('v73 wrap', name, e); } }, 0); return ret; };
+      fn.__v73Wrapped = true;
+      A[name] = fn;
+    };
+    wrap('renderizarDashboard', function(){ this.v73EnsureUI?.(); this.v73RefreshBadges?.(); });
+    wrap('renderizarAtivos', function(){ this.v73EnsureAtivosTools?.(); this.aplicarFiltroAtivosRapidoV73?.(); this.v73RefreshBadges?.(); });
+    wrap('renderizarProximoAporte', function(){ this.v73EnsureProximoTools?.(); });
+    wrap('mostrarSugestoesAporte', function(){ this.v73EnsureProximoTools?.(); });
+    wrap('renderConfigStats', function(){ this.v73EnsureConfigStatus?.(); this.v73EnhanceConfigButtons?.(); this.v73RefreshBadges?.(); });
+    wrap('salvarConfig', function(){ this.v73EnsureConfigStatus?.(); this.v73RefreshBadges?.(); });
+    wrap('buscarCotacoes', function(){ this.v73EnsureConfigStatus?.(); this.v73RefreshBadges?.(); });
+    wrap('reprocessarBase', function(){ this.renderizarPendenciasV73?.(); this.v73RefreshBadges?.(); });
+    wrap('atualizarTudo', function(){ this.v73EnsureUI?.(); this.v73RefreshBadges?.(); });
+
+    this?.noop;
+    A.v73EnsureUI();
+    A.v73EnsureAtivosTools();
+    A.v73EnsureProximoTools();
+    A.v73EnsureConfigStatus();
+    A.v73EnhanceConfigButtons();
+    A.renderizarPendenciasV73();
+    A.v73RefreshBadges();
+    [400, 1200, 2600].forEach(ms => setTimeout(() => { try{ A.v73EnsureUI(); A.v73RefreshBadges(); A.v73EnsureConfigStatus(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV73, 220));
+  installV73();
+  window.addEventListener('load', () => setTimeout(installV73, 260));
+})();
+</script>
+
+
+
+<style id="v75-pendencias-dashboard-style">
+/* v75: ajustes leves para não quebrar a página inicial */
+.v74-small-pending,.v75-small-pending{padding:6px 10px!important;font-size:11.5px!important;min-height:30px;}
+.v75-dashboard-evolution-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.v75-dashboard-chart-card{min-height:310px;}
+.v75-dashboard-chart-wrap{height:235px;position:relative;}
+.v75-chart-sub{font-size:11.5px;color:var(--text-muted);font-weight:700;}
+.v75-suggestion{margin-top:8px;border:1px dashed rgba(61,142,240,.35);background:var(--primary-glow);border-radius:10px;padding:8px 10px;color:var(--text-muted);font-size:12px;line-height:1.35;}
+.v75-suggestion strong{color:var(--text-main);}
+.v75-issue-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;}
+.v75-issue-side{display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.v75-bulk-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);}
+.v75-bulk-bar .mini-note{margin-right:auto;}
+.v75-archived-note{font-size:11px;color:var(--text-dim);margin-top:5px;}
+@media(max-width:980px){.v75-dashboard-evolution-row{grid-template-columns:1fr}.v75-issue-actions{justify-content:flex-start}.v75-issue-side{align-items:flex-start}.v73-issue-card{grid-template-columns:1fr!important}}
+</style>
+<script id="v75-pendencias-dashboard-script">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV75(){
+    const A = getApp();
+    if(!A || A.__v75PendenciasDashboardCorrigido) return;
+    A.__v75PendenciasDashboardCorrigido = true;
+    A.VERSAO_SISTEMA = 'v75_pendencias_dashboard_corrigido';
+    document.title = 'Patrimônio OS · v75 Pendências e Dashboard';
+    const brandSub = document.querySelector('.brand sub');
+    if(brandSub) brandSub.textContent = 'v75 · pendências/dashboard';
+
+    A.s = A.s || {};
+    A.s.v75PendIgnored = A.loadJSON?.('wOS_v75PendIgnored', A.s.v75PendIgnored || {}) || A.s.v75PendIgnored || {};
+
+    A.v75PendKey = function(i){
+      const raw = `${i?.titulo||''}|${i?.detalhe||''}|${i?.categoria||''}|${i?.ref||''}|${i?.ticker||''}`;
+      try{ return btoa(unescape(encodeURIComponent(raw))).replace(/=+$/,'').slice(0,80); }
+      catch(e){ return raw.replace(/[^a-zA-Z0-9]+/g,'_').slice(0,80); }
+    };
+
+    A.v75GetTxByIssue = function(i){
+      const banco = this.s?.banco || [];
+      const ref = i?.ref;
+      if(ref !== undefined && ref !== null && ref !== ''){
+        const byId = banco.find(tx => String(tx.id || '') === String(ref));
+        if(byId) return byId;
+        const n = parseInt(ref, 10);
+        if(Number.isFinite(n) && banco[n]) return banco[n];
+      }
+      const ticker = String(i?.ticker || '').toUpperCase().trim();
+      if(!ticker) return null;
+      return banco.find(tx => String(tx.titulo || tx.ativoOrigem || tx.tickerDestino || '').toUpperCase().trim() === ticker) || null;
+    };
+
+    A.v75CorretoraPadraoBrasil = function(ticker){
+      const banco = this.s?.banco || [];
+      const tk = String(ticker || '').toUpperCase().trim();
+      const cont = {};
+      banco.forEach(tx => {
+        const local = this.normalizeLocal?.(tx.local || '') || String(tx.local || '').toUpperCase();
+        if(local !== 'BRASIL') return;
+        const onde = String(tx.onde || '').toUpperCase().trim();
+        if(!onde) return;
+        const ttx = String(tx.titulo || tx.ativoOrigem || tx.tickerDestino || '').toUpperCase().trim();
+        const peso = (tk && ttx === tk) ? 10 : 1;
+        cont[onde] = (cont[onde] || 0) + peso;
+      });
+      if(cont.ITAU) return 'ITAU';
+      const top = Object.entries(cont).sort((a,b)=>b[1]-a[1])[0];
+      return top?.[0] || 'ITAU';
+    };
+
+    A.v75IsEventoSemValorExterior = function(tx){
+      if(!tx) return false;
+      const tipo = this.normalizeTipo?.(tx.tipo || '') || String(tx.tipo || '').toUpperCase();
+      const local = this.normalizeLocal?.(tx.local || '') || String(tx.local || '').toUpperCase();
+      return local === 'EXTERIOR' && ['DESDOBRAMENTO','GRUPAMENTO','BONIFICACAO','SPINOFF'].includes(tipo) && !(this.parseNum?.(tx.valorDolar) > 0 || this.parseNum?.(tx.valorOp) > 0);
+    };
+
+    A.v75ClassificarSugestao = function(i){
+      const tx = this.v75GetTxByIssue?.(i);
+      const titulo = String(i?.titulo || '');
+      const ticker = String(i?.ticker || tx?.titulo || tx?.ativoOrigem || tx?.tickerDestino || '').toUpperCase().trim();
+      const local = this.normalizeLocal?.(tx?.local || '') || String(tx?.local || '').toUpperCase();
+      if(tx && /Corretora vazia/i.test(titulo) && local === 'BRASIL'){
+        const corretora = this.v75CorretoraPadraoBrasil?.(ticker) || 'ITAU';
+        return { tipo:'setCorretoraBrasil', label:`Preencher corretora como ${corretora}`, detalhe:`Ativo brasileiro sem corretora. Sugestão: usar ${corretora}, que já aparece como corretora brasileira cadastrada.`, corretora };
+      }
+      if(tx && /Exterior sem valor/i.test(titulo) && this.v75IsEventoSemValorExterior?.(tx)){
+        return { tipo:'arquivarEventoSemValor', label:'Arquivar/ignorar', detalhe:'Evento societário no exterior sem valor financeiro. Para desdobramento, grupamento, bonificação ou spinoff, a pendência pode ser arquivada quando a quantidade/fator estiver correto.' };
+      }
+      return null;
+    };
+
+    const oldGet = A.getPendenciasBaseV73?.bind(A);
+    if(oldGet && !A.__v75OldGetPendenciasBaseV73) A.__v75OldGetPendenciasBaseV73 = oldGet;
+
+    A.getPendenciasBaseV75 = function(opts={}){
+      const raw = (this.__v75OldGetPendenciasBaseV73 ? this.__v75OldGetPendenciasBaseV73() : (oldGet ? oldGet() : [])) || [];
+      const ignored = this.s?.v75PendIgnored || {};
+      return raw.map((i,idx) => {
+        const item = {...i, id:i.id || `v75p${idx}`};
+        item.v75key = this.v75PendKey?.(item) || item.id;
+        item.v75ignored = !!ignored[item.v75key];
+        item.v75suggestion = this.v75ClassificarSugestao?.(item) || null;
+        return item;
+      }).filter(i => opts.includeIgnored || !i.v75ignored);
+    };
+
+    A.getPendenciasBaseV73 = function(){ return this.getPendenciasBaseV75?.({includeIgnored:false}) || []; };
+
+    A.v75MatchesPendFilter = function(i){
+      const filtro = this.s.v73PendFiltro || 'ALL';
+      const q = String(document.getElementById('v73PendSearch')?.value || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const hay = [i.titulo,i.detalhe,i.categoria,i.ticker,this.v73RouteName?.(i.view)].join(' ').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return (filtro === 'ALL' || i.level === filtro) && (!q || hay.includes(q));
+    };
+
+    A.v75VisiblePendencias = function(){ return (this.getPendenciasBaseV73?.() || []).filter(i => this.v75MatchesPendFilter?.(i)); };
+
+    A.v75SalvarPendencias = function(){ this.saveJSON?.('wOS_v75PendIgnored', this.s.v75PendIgnored || {}); };
+
+    A.v75AplicarSugestaoItem = function(item, opts={}){
+      if(!item) return false;
+      const sug = item.v75suggestion || this.v75ClassificarSugestao?.(item);
+      if(!sug) return false;
+      if(sug.tipo === 'setCorretoraBrasil'){
+        const tx = this.v75GetTxByIssue?.(item);
+        if(!tx) return false;
+        tx.onde = sug.corretora || 'ITAU';
+        return true;
+      }
+      if(sug.tipo === 'arquivarEventoSemValor'){
+        this.s.v75PendIgnored = this.s.v75PendIgnored || {};
+        this.s.v75PendIgnored[item.v75key || this.v75PendKey(item)] = {at:new Date().toISOString(), titulo:item.titulo, motivo:'Evento societário exterior sem valor financeiro'};
+        return true;
+      }
+      return false;
+    };
+
+    A.v75ApplyPendencia = function(id){
+      const item = (this.getPendenciasBaseV75?.({includeIgnored:false}) || []).find(x => x.id === id || x.v75key === id);
+      if(!item) return;
+      if(this.v75AplicarSugestaoItem?.(item)){
+        this.salvarTudoLocal?.();
+        this.v75SalvarPendencias?.();
+        this.reprocessarBase?.(false);
+        this.renderizarPendenciasV73?.();
+        this.renderizarDashboard?.();
+        this.toast?.('Sugestão aplicada.', 'success');
+      } else {
+        this.corrigirPendenciaV73?.(id);
+      }
+    };
+
+    A.v75ArchivePendencia = function(id){
+      const item = (this.getPendenciasBaseV75?.({includeIgnored:false}) || []).find(x => x.id === id || x.v75key === id);
+      if(!item) return;
+      this.s.v75PendIgnored = this.s.v75PendIgnored || {};
+      this.s.v75PendIgnored[item.v75key || this.v75PendKey(item)] = {at:new Date().toISOString(), titulo:item.titulo};
+      this.v75SalvarPendencias?.();
+      this.renderizarPendenciasV73?.();
+      this.v73RefreshBadges?.();
+      this.toast?.('Pendência arquivada e removida da contagem.', 'success');
+    };
+
+    A.v75ApplyPendenciasLote = function(){
+      const items = this.getPendenciasBaseV75?.({includeIgnored:false}) || [];
+      let aplicadas = 0;
+      items.forEach(item => { if(item.v75suggestion && this.v75AplicarSugestaoItem?.(item, {bulk:true})) aplicadas++; });
+      if(aplicadas){
+        this.salvarTudoLocal?.();
+        this.v75SalvarPendencias?.();
+        this.reprocessarBase?.(false);
+        this.renderizarPendenciasV73?.();
+        this.renderizarDashboard?.();
+        this.toast?.(`${aplicadas} pendência(s) tratada(s) em lote.`, 'success');
+      } else {
+        this.toast?.('Nenhuma sugestão segura para aplicar em lote neste momento.', 'info');
+      }
+    };
+
+    A.v75ArchivePendenciasVisiveis = function(){
+      const items = this.v75VisiblePendencias?.() || [];
+      if(!items.length){ this.toast?.('Nenhuma pendência visível para arquivar.', 'info'); return; }
+      this.s.v75PendIgnored = this.s.v75PendIgnored || {};
+      items.forEach(item => { this.s.v75PendIgnored[item.v75key || this.v75PendKey(item)] = {at:new Date().toISOString(), titulo:item.titulo}; });
+      this.v75SalvarPendencias?.();
+      this.renderizarPendenciasV73?.();
+      this.v73RefreshBadges?.();
+      this.toast?.(`${items.length} pendência(s) arquivada(s).`, 'success');
+    };
+
+    A.v75RestaurarArquivadas = function(){
+      this.s.v75PendIgnored = {};
+      this.v75SalvarPendencias?.();
+      this.renderizarPendenciasV73?.();
+      this.v73RefreshBadges?.();
+      this.toast?.('Pendências arquivadas restauradas.', 'success');
+    };
+
+    A.v75EnhancePendenciasUI = function(){
+      const actions = document.querySelector('#view-pendencias .v73-pending-actions');
+      if(actions && !document.getElementById('v75BulkApplyBtn')){
+        actions.insertAdjacentHTML('afterbegin', `
+          <button id="v75BulkApplyBtn" class="btn btn-success" onclick="app.v75ApplyPendenciasLote()"><i class="ph ph-lightning"></i> Aplicar sugestões seguras</button>
+          <button class="btn btn-outline" onclick="app.v75ArchivePendenciasVisiveis()"><i class="ph ph-archive"></i> Arquivar exibidas</button>
+          <button class="btn btn-outline" onclick="app.v75RestaurarArquivadas()"><i class="ph ph-arrow-counter-clockwise"></i> Restaurar arquivadas</button>`);
+      }
+      const card = document.getElementById('v73PendList')?.closest('.card');
+      if(card && !document.getElementById('v75BulkBar')){
+        const bar = document.createElement('div');
+        bar.id = 'v75BulkBar';
+        bar.className = 'v75-bulk-bar';
+        bar.innerHTML = `<span class="mini-note"><strong>Ações rápidas:</strong> use o lote para resolver mais de 1000 pendências sem abrir uma por uma.</span><button class="btn btn-success btn-sm" onclick="app.v75ApplyPendenciasLote()"><i class="ph ph-lightning"></i> 1 clique: aplicar seguras</button><button class="btn btn-outline btn-sm" onclick="app.v75ArchivePendenciasVisiveis()"><i class="ph ph-archive"></i> Arquivar exibidas</button>`;
+        const list = document.getElementById('v73PendList');
+        card.insertBefore(bar, list);
+      }
+    };
+
+    A.renderizarPendenciasV73 = function(){
+      this.v73EnsureUI?.();
+      this.v75EnhancePendenciasUI?.();
+      const all = this.getPendenciasBaseV73?.() || [];
+      this.s.v73PendenciasCache = all;
+      const issues = all.filter(i => this.v75MatchesPendFilter?.(i));
+      const sum = this.v73PendSummary?.(all) || {total:all.length};
+      const ignoredCount = Object.keys(this.s.v75PendIgnored || {}).length;
+      const list = document.getElementById('v73PendList');
+      const kpis = document.getElementById('v73PendKpis');
+      const note = document.getElementById('v73PendListNote');
+      if(kpis){
+        kpis.innerHTML = `
+          <div class="v73-pending-kpi"><span>Total</span><strong>${sum.total}</strong><small>ativas na contagem</small></div>
+          <div class="v73-pending-kpi"><span>Críticas</span><strong style="color:var(--danger)">${sum.danger||0}</strong><small>corrigir antes de confiar</small></div>
+          <div class="v73-pending-kpi"><span>Revisar</span><strong style="color:var(--warning)">${sum.warning||0}</strong><small>melhora cálculo/controle</small></div>
+          <div class="v73-pending-kpi"><span>Arquivadas</span><strong style="color:var(--text-muted)">${ignoredCount}</strong><small>fora da contagem</small></div>`;
+      }
+      if(note) note.textContent = `${issues.length} exibida(s) · ${all.length} ativa(s) · ${ignoredCount} arquivada(s)`;
+      if(list){
+        if(!issues.length){
+          list.innerHTML = '<div class="audit-item a-info"><strong>Nenhuma pendência neste filtro</strong><div class="mini-note">Altere o filtro, restaure arquivadas ou reprocesse a base para validar novamente.</div></div>';
+        } else {
+          list.innerHTML = issues.map(i => {
+            const sug = i.v75suggestion;
+            const btnSug = sug ? `<button class="btn btn-success btn-xs" onclick="event.stopPropagation(); app.v75ApplyPendencia('${i.id}')"><i class="ph ph-check"></i> ${this.esc(sug.label)}</button>` : '';
+            const sugBox = sug ? `<div class="v75-suggestion"><strong>Sugestão:</strong> ${this.esc(sug.detalhe)}</div>` : '';
+            return `<div class="v73-issue-card ${this.escAttr?.(i.level)||i.level}" onclick="app.corrigirPendenciaV73('${i.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){app.corrigirPendenciaV73('${i.id}');event.preventDefault();}">
+              <div class="v73-issue-main"><strong>${this.esc(i.titulo)}</strong><div class="v73-issue-meta">${this.esc(i.detalhe)}</div>${sugBox}<span class="v73-issue-route"><i class="ph ph-arrow-bend-down-right"></i> Corrigir em ${this.esc(this.v73RouteName(i.view))}${i.ticker ? ' · '+this.esc(i.ticker) : ''}</span></div>
+              <div class="v75-issue-side"><span class="v73-issue-badge ${this.escAttr?.(i.level)||i.level}">${this.v73LevelLabel(i.level)}</span><div class="v75-issue-actions">${btnSug}<button class="btn btn-outline btn-xs" onclick="event.stopPropagation(); app.v75ArchivePendencia('${i.id}')"><i class="ph ph-archive"></i> Arquivar</button></div></div>
+            </div>`;
+          }).join('');
+        }
+      }
+      this.v73RefreshBadges?.(all);
+      return all;
+    };
+
+    A.renderDashboardPendenciasV73 = function(){ document.getElementById('v73DashboardPending')?.remove(); };
+
+    A.v75SyncTopPill = function(){
+      document.getElementById('v73DashboardPending')?.remove();
+      const top = document.querySelector('.top-bar > div:last-child');
+      const pill = document.getElementById('v73PendingTopPill');
+      const dollar = document.querySelector('.v72-dollar-pill');
+      if(pill){
+        pill.classList.add('v75-small-pending');
+        pill.title = 'Abrir aba Pendências';
+        pill.onclick = () => this.navigate('view-pendencias', document.querySelector('.nav-item[data-view="view-pendencias"]'));
+        if(top && dollar && pill.parentNode === top && dollar.nextElementSibling !== pill) top.insertBefore(pill, dollar.nextSibling);
+      }
+    };
+
+    A.v72RefreshDolarPill = function(){
+      const el = document.getElementById('statusDolarAtual');
+      if(!el) return;
+      const dolar = this.getDolarHoje?.() || this.parseNum?.(this.s?.dolarAtual) || this.parseNum?.(this.s?.config?.dolarManual) || 0;
+      const txt = dolar > 0 ? (this.fmtN?.(dolar,2) || Number(dolar).toFixed(2).replace('.',',')) : '—';
+      el.innerHTML = `Dólar: <strong>R$ ${txt}</strong>`;
+    };
+
+    A.v75DashboardYears = function(){
+      const anos = new Set();
+      (this.s?.banco || []).forEach(tx => { const a = parseInt(tx.ano || String(this.normData?.(tx.data || '') || '').slice(0,4), 10); if(a) anos.add(a); });
+      Object.keys(this.s?.rendaManual || {}).forEach(k => { const a = parseInt(k.slice(0,4), 10); if(a) anos.add(a); });
+      Object.keys(this.s?.historicoAjustes || {}).forEach(k => { const a = parseInt(k.slice(0,4), 10); if(a) anos.add(a); });
+      if(!anos.size) anos.add(new Date().getFullYear());
+      return [...anos].sort((a,b)=>a-b);
+    };
+
+    A.v75DashboardEvolutionData = function(){
+      const anos = this.v75DashboardYears?.() || [new Date().getFullYear()];
+      const aporte = anos.map(a => {
+        let total = 0, meses = 0;
+        for(let m=1;m<=12;m++){
+          const v = this.getHistoricoMesFinal ? this.getHistoricoMesFinal(a,m) : 0;
+          total += v;
+          if(Math.abs(v) > 0.00001) meses++;
+        }
+        return {ano:a, valor: meses ? total/meses : 0};
+      });
+      const rendaFixa = anos.map(a => ({ano:a, valor:this.getHistoricoMesFinal ? this.getHistoricoMesFinal(a,13) : (this.parseNum?.(this.getRendaManualMes?.(a,13)?.rendaFixa || 0) || 0)}));
+      return {anos, aporte, rendaFixa};
+    };
+
+    A.v75EnsureDashboardEvolutionCharts = function(){
+      const dash = document.getElementById('view-dashboard');
+      if(!dash) return;
+      let row = document.getElementById('v75DashboardEvolutionRow');
+      if(!row){
+        row = document.createElement('div');
+        row.id = 'v75DashboardEvolutionRow';
+        row.className = 'v75-dashboard-evolution-row';
+        row.innerHTML = `<div class="card v75-dashboard-chart-card"><div class="card-hd"><div><div class="card-title"><i class="ph-fill ph-chart-line-up"></i> Evolução de Aporte</div><div class="v75-chart-sub">média mensal por ano</div></div></div><div class="v75-dashboard-chart-wrap"><canvas id="v75ChartAporteDashboard"></canvas></div></div><div class="card v75-dashboard-chart-card"><div class="card-hd"><div><div class="card-title"><i class="ph-fill ph-bank"></i> Evolução de Renda Fixa</div><div class="v75-chart-sub">valor anual cadastrado</div></div></div><div class="v75-dashboard-chart-wrap"><canvas id="v75ChartRendaFixaDashboard"></canvas></div></div>`;
+      }
+      const line4 = document.getElementById('v70Line4');
+      const line3 = document.getElementById('v70Line3');
+      if(line4 && row.parentNode !== dash) dash.insertBefore(row, line4);
+      else if(line4 && row.nextElementSibling !== line4) dash.insertBefore(row, line4);
+      else if(line3 && line3.parentNode && row.parentNode !== dash) line3.parentNode.insertBefore(row, line3.nextSibling);
+      else if(!row.parentNode) dash.appendChild(row);
+      this.v75RenderDashboardEvolutionCharts?.();
+    };
+
+    A.v75RenderDashboardEvolutionCharts = function(){
+      if(typeof Chart === 'undefined') return;
+      const c1 = document.getElementById('v75ChartAporteDashboard');
+      const c2 = document.getElementById('v75ChartRendaFixaDashboard');
+      if(!c1 || !c2) return;
+      const data = this.v75DashboardEvolutionData?.() || {anos:[], aporte:[], rendaFixa:[]};
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+      const opts = {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:textColor}}}, scales:{x:{ticks:{color:textColor}}, y:{ticks:{color:textColor, callback:(val)=>{ if(val>=1000000) return 'R$ '+(val/1000000).toFixed(1).replace('.',',')+'M'; if(val>=1000) return 'R$ '+(val/1000).toFixed(0)+'K'; return 'R$ '+Number(val).toFixed(0); }}}}};
+      if(this.s.v75ChartAporteDashboard){ this.s.v75ChartAporteDashboard.destroy(); this.s.v75ChartAporteDashboard = null; }
+      if(this.s.v75ChartRendaFixaDashboard){ this.s.v75ChartRendaFixaDashboard.destroy(); this.s.v75ChartRendaFixaDashboard = null; }
+      this.s.v75ChartAporteDashboard = new Chart(c1, {type:'line', data:{labels:data.anos.map(String), datasets:[{label:'Aporte médio mensal', data:data.aporte.map(i=>i.valor), borderColor:'#3d8ef0', backgroundColor:'rgba(61,142,240,0.18)', tension:0.25, fill:true}]}, options:opts, plugins:[this.getChartValueLabelPlugin?.()].filter(Boolean)});
+      this.s.v75ChartRendaFixaDashboard = new Chart(c2, {type:'bar', data:{labels:data.anos.map(String), datasets:[{label:'Renda fixa anual', data:data.rendaFixa.map(i=>i.valor), backgroundColor:'rgba(61,142,240,0.30)', borderColor:'#3d8ef0', borderWidth:1}]}, options:opts, plugins:[this.getChartValueLabelPlugin?.()].filter(Boolean)});
+    };
+
+    const wrap = (name, after) => {
+      const old = A[name]?.bind(A);
+      if(!old || old.__v75Wrapped) return;
+      const fn = function(){ const ret = old(...arguments); setTimeout(() => { try{ after.call(this, name); }catch(e){ console.warn('v75 wrap', name, e); } }, 0); return ret; };
+      fn.__v75Wrapped = true;
+      A[name] = fn;
+    };
+    wrap('renderizarDashboard', function(){ this.v75SyncTopPill?.(); this.v72RefreshDolarPill?.(); this.v75EnsureDashboardEvolutionCharts?.(); });
+    wrap('v70PrepararDashboardHierarquia', function(){ this.v75EnsureDashboardEvolutionCharts?.(); });
+    wrap('atualizarTudo', function(){ this.v75SyncTopPill?.(); this.v72RefreshDolarPill?.(); this.v75EnsureDashboardEvolutionCharts?.(); });
+    wrap('buscarCotacoes', function(){ this.v72RefreshDolarPill?.(); });
+    wrap('salvarConfig', function(){ this.v72RefreshDolarPill?.(); });
+
+    const oldNavigate = A.navigate?.bind(A);
+    if(oldNavigate && !oldNavigate.__v75Wrapped){
+      const fn = function(viewId, el){
+        const ret = oldNavigate(viewId, el);
+        setTimeout(() => {
+          try{
+            if(viewId === 'view-pendencias'){ this.v75EnhancePendenciasUI?.(); this.renderizarPendenciasV73?.(); }
+            if(viewId === 'view-dashboard') this.v75EnsureDashboardEvolutionCharts?.();
+            this.v75SyncTopPill?.(); this.v72RefreshDolarPill?.();
+          }catch(e){ console.warn('v75 navigate', e); }
+        }, 60);
+        return ret;
+      };
+      fn.__v75Wrapped = true;
+      A.navigate = fn;
+    }
+
+    try{
+      A.v73EnsureUI?.();
+      A.v75EnhancePendenciasUI?.();
+      A.renderizarPendenciasV73?.();
+      A.v75SyncTopPill?.();
+      A.v72RefreshDolarPill?.();
+      A.v75EnsureDashboardEvolutionCharts?.();
+    }catch(e){ console.warn('v75 init', e); }
+    [250,900,1800].forEach(ms => setTimeout(() => { try{ A.v75SyncTopPill?.(); A.v72RefreshDolarPill?.(); A.v75EnsureDashboardEvolutionCharts?.(); document.getElementById('v73DashboardPending')?.remove(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV75, 320));
+  installV75();
+  window.addEventListener('load', () => setTimeout(installV75, 360));
+})();
+</script>
+
 </body>
 </html>
