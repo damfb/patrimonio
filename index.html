@@ -12717,5 +12717,258 @@ window.addEventListener('load', () => app.init());
 })();
 </script>
 
+
+<style id="v76-dashboard-ajustes-style">
+/* v76: correção das médias do dashboard + backup rápido */
+.v76-backup-btn{padding:6px 10px!important;font-size:11.5px!important;min-height:30px;}
+#v75DashboardEvolutionRow .v75-chart-sub{line-height:1.35;}
+</style>
+<script id="v76-dashboard-ajustes-script">
+(function(){
+  function getApp(){
+    try{
+      if(window.app) return window.app;
+      if(typeof app !== 'undefined'){ window.app = app; return app; }
+    }catch(e){}
+    return null;
+  }
+
+  function installV76(){
+    const A = getApp();
+    if(!A || A.__v76DashboardAporteRendaBackup) return;
+    A.__v76DashboardAporteRendaBackup = true;
+    A.VERSAO_SISTEMA = 'v76_dashboard_aporte_renda_backup';
+    document.title = 'Patrimônio OS · v76 Dashboard corrigido';
+    const brandSub = document.querySelector('.brand sub');
+    if(brandSub) brandSub.textContent = 'v76 · dashboard corrigido';
+
+    A.v76EnsureTopBackupButton = function(){
+      const top = document.querySelector('.top-bar > div:last-child');
+      if(!top) return;
+      let btn = document.getElementById('v76BackupTopBtn');
+      if(!btn){
+        btn = document.createElement('button');
+        btn.id = 'v76BackupTopBtn';
+        btn.type = 'button';
+        btn.className = 'btn btn-outline btn-sm v76-backup-btn';
+        btn.innerHTML = '<i class="ph ph-download-simple"></i> ed backup';
+        btn.title = 'Exportar backup JSON';
+        btn.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); this.backupCompleto?.(); };
+      }
+      const pending = document.getElementById('v73PendingTopPill');
+      const dolar = document.querySelector('.v72-dollar-pill');
+      const ref = pending || dolar;
+      if(ref && ref.parentNode === top){
+        if(btn.parentNode !== top || ref.nextElementSibling !== btn) top.insertBefore(btn, ref.nextSibling);
+      } else if(btn.parentNode !== top){
+        top.appendChild(btn);
+      }
+      const isDashboard = document.getElementById('view-dashboard')?.classList.contains('active');
+      btn.style.display = isDashboard ? '' : 'none';
+    };
+
+    A.v76GetHistoricoMesDashboard = function(ano, mes){
+      if(this.getHistoricoMesFinal) return this.parseNum?.(this.getHistoricoMesFinal(ano, mes)) || 0;
+      const calc = this.getHistoricoMesCalculado ? (this.parseNum?.(this.getHistoricoMesCalculado(ano, mes)) || 0) : 0;
+      const aj = this.getHistoricoAjuste ? (this.parseNum?.(this.getHistoricoAjuste(ano, mes)?.ajuste || 0) || 0) : 0;
+      return calc + aj;
+    };
+
+    A.v76AporteMediaDashboardAno = function(ano){
+      const anoAtual = new Date().getFullYear();
+      if(Number(ano) === anoAtual && this.getAporteAnoCorrentePonderadoResumo){
+        const r = this.getAporteAnoCorrentePonderadoResumo() || {};
+        return { ano, valor:this.parseNum?.(r.media || 0) || 0, total:this.parseNum?.(r.total || 0) || 0, meses:r.meses || 0, regra:'ano_corrente' };
+      }
+      let total = 0;
+      for(let m=1; m<=12; m++) total += this.v76GetHistoricoMesDashboard?.(ano, m) || 0;
+      total += this.v76GetHistoricoMesDashboard?.(ano, 13) || 0; // renda fixa anual entra no numerador
+      return { ano, valor: total / 12, total, meses:12, regra:'ano_fechado' };
+    };
+
+    A.v76RendaPassivaMediaDashboardAno = function(ano){
+      const anoAtual = new Date().getFullYear();
+      const r = this.getRendaAnoResumo?.(ano, Number(ano) === anoAtual) || {total:0, media:0, meses:0};
+      return { ano, valor:this.parseNum?.(r.media || 0) || 0, total:this.parseNum?.(r.total || 0) || 0, meses:r.meses || 0, regra:Number(ano) === anoAtual ? 'ano_corrente' : 'historico' };
+    };
+
+    A.v75DashboardYears = function(){
+      const anos = new Set();
+      (this.s?.banco || []).forEach(tx => {
+        const data = this.normData?.(tx.data || '') || '';
+        const a = parseInt(tx.ano || String(data).slice(0,4), 10);
+        if(a) anos.add(a);
+      });
+      Object.keys(this.s?.rendaManual || {}).forEach(k => { const a = parseInt(k.slice(0,4), 10); if(a) anos.add(a); });
+      Object.keys(this.s?.historicoAjustes || {}).forEach(k => { const a = parseInt(k.slice(0,4), 10); if(a) anos.add(a); });
+      if(!anos.size) anos.add(new Date().getFullYear());
+      return [...anos].sort((a,b)=>a-b);
+    };
+
+    A.v75DashboardEvolutionData = function(){
+      const anos = this.v75DashboardYears?.() || [new Date().getFullYear()];
+      return {
+        anos,
+        aporte: anos.map(a => this.v76AporteMediaDashboardAno?.(a) || {ano:a, valor:0, total:0, meses:0}),
+        rendaFixa: anos.map(a => this.v76RendaPassivaMediaDashboardAno?.(a) || {ano:a, valor:0, total:0, meses:0})
+      };
+    };
+
+    A.v76GrowthBetweenYearsPlugin = function(pluginId){
+      return {
+        id: pluginId || 'v76GrowthBetweenYears',
+        afterDatasetsDraw(chart){
+          const ds = chart.data?.datasets?.[0];
+          const meta = chart.getDatasetMeta(0);
+          if(!ds || !meta?.data || meta.data.length < 2) return;
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = '700 11px DM Sans, Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const css = getComputedStyle(document.documentElement);
+          const pos = css.getPropertyValue('--success').trim() || '#22d07a';
+          const neg = css.getPropertyValue('--warning').trim() || '#f0b429';
+          const bg = css.getPropertyValue('--bg-card').trim() || '#0a1220';
+          for(let i=1; i<meta.data.length; i++){
+            const prev = Number(ds.data[i-1] || 0);
+            const curr = Number(ds.data[i] || 0);
+            if(!Number.isFinite(prev) || !Number.isFinite(curr) || Math.abs(prev) < 0.00001) continue;
+            const pct = ((curr - prev) / Math.abs(prev)) * 100;
+            if(!Number.isFinite(pct)) continue;
+            const p0 = meta.data[i-1].getProps(['x','y'], true);
+            const p1 = meta.data[i].getProps(['x','y'], true);
+            const x = (p0.x + p1.x) / 2;
+            const y = (p0.y + p1.y) / 2 - 14;
+            const txt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}%`;
+            const w = ctx.measureText(txt).width + 10;
+            ctx.fillStyle = bg;
+            if(typeof ctx.roundRect === 'function'){
+              ctx.beginPath(); ctx.roundRect(x - w/2, y - 9, w, 18, 8); ctx.fill();
+            } else {
+              ctx.fillRect(x - w/2, y - 9, w, 18);
+            }
+            ctx.fillStyle = pct >= 0 ? pos : neg;
+            ctx.fillText(txt, x, y);
+          }
+          ctx.restore();
+        }
+      };
+    };
+
+    A.v75EnsureDashboardEvolutionCharts = function(){
+      const dash = document.getElementById('view-dashboard');
+      if(!dash) return;
+      let row = document.getElementById('v75DashboardEvolutionRow');
+      if(!row){
+        row = document.createElement('div');
+        row.id = 'v75DashboardEvolutionRow';
+        row.className = 'v75-dashboard-evolution-row';
+      }
+      row.innerHTML = `<div class="card v75-dashboard-chart-card"><div class="card-hd"><div><div class="card-title"><i class="ph-fill ph-chart-line-up"></i> Evolução de Aporte</div><div class="v75-chart-sub">anos fechados = total anual com RF ÷ 12; ano corrente = média do ano</div></div></div><div class="v75-dashboard-chart-wrap"><canvas id="v75ChartAporteDashboard"></canvas></div></div><div class="card v75-dashboard-chart-card"><div class="card-hd"><div><div class="card-title"><i class="ph-fill ph-hand-coins"></i> Evolução de Renda Passiva</div><div class="v75-chart-sub">mesma média mensal exibida na aba Renda Passiva</div></div></div><div class="v75-dashboard-chart-wrap"><canvas id="v75ChartRendaFixaDashboard"></canvas></div></div>`;
+      const line4 = document.getElementById('v70Line4');
+      const line3 = document.getElementById('v70Line3');
+      if(line4 && line4.parentNode) line4.parentNode.insertBefore(row, line4);
+      else if(line3 && line3.parentNode) line3.parentNode.insertBefore(row, line3.nextSibling);
+      else if(!row.parentNode) dash.appendChild(row);
+      this.v75RenderDashboardEvolutionCharts?.();
+    };
+
+    A.v75RenderDashboardEvolutionCharts = function(){
+      if(typeof Chart === 'undefined') return;
+      const c1 = document.getElementById('v75ChartAporteDashboard');
+      const c2 = document.getElementById('v75ChartRendaFixaDashboard');
+      if(!c1 || !c2) return;
+      const data = this.v75DashboardEvolutionData?.() || {anos:[], aporte:[], rendaFixa:[]};
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+      const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+      const fmtMoeda = (val) => {
+        const n = Number(val || 0);
+        if(n >= 1000000) return 'R$ ' + (n/1000000).toFixed(1).replace('.', ',') + 'M';
+        if(n >= 1000) return 'R$ ' + (n/1000).toFixed(0).replace('.', ',') + 'K';
+        return 'R$ ' + n.toFixed(0).replace('.', ',');
+      };
+      const opts = (titulo) => ({
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{ labels:{ color:textColor } },
+          tooltip:{ callbacks:{
+            label:(ctx) => `${titulo}: ${this.fmt ? this.fmt(ctx.parsed.y || 0) : fmtMoeda(ctx.parsed.y || 0)}/mês`,
+            afterLabel:(ctx) => {
+              const arr = titulo.includes('Aporte') ? data.aporte : data.rendaFixa;
+              const item = arr[ctx.dataIndex] || {};
+              if(!item.total) return '';
+              return `Total considerado: ${this.fmt ? this.fmt(item.total) : fmtMoeda(item.total)}${item.meses ? ` · meses: ${item.meses}` : ''}`;
+            }
+          } }
+        },
+        scales:{
+          x:{ ticks:{ color:textColor }, grid:{ color:gridColor } },
+          y:{ ticks:{ color:textColor, callback:fmtMoeda }, grid:{ color:gridColor } }
+        }
+      });
+      if(this.s.v75ChartAporteDashboard){ try{ this.s.v75ChartAporteDashboard.destroy(); }catch(e){} this.s.v75ChartAporteDashboard = null; }
+      if(this.s.v75ChartRendaFixaDashboard){ try{ this.s.v75ChartRendaFixaDashboard.destroy(); }catch(e){} this.s.v75ChartRendaFixaDashboard = null; }
+      const extraPluginsAporte = [this.getChartValueLabelPlugin?.(), this.v76GrowthBetweenYearsPlugin?.('v76GrowthAporte')].filter(Boolean);
+      const extraPluginsRenda = [this.getChartValueLabelPlugin?.(), this.v76GrowthBetweenYearsPlugin?.('v76GrowthRenda')].filter(Boolean);
+      this.s.v75ChartAporteDashboard = new Chart(c1, {
+        type:'line',
+        data:{ labels:data.anos.map(String), datasets:[{ label:'Aporte médio mensal', data:data.aporte.map(i=>i.valor || 0), borderColor:'#3d8ef0', backgroundColor:'rgba(61,142,240,0.18)', tension:0.25, fill:true, pointRadius:4 }] },
+        options:opts('Aporte médio'),
+        plugins:extraPluginsAporte
+      });
+      this.s.v75ChartRendaFixaDashboard = new Chart(c2, {
+        type:'line',
+        data:{ labels:data.anos.map(String), datasets:[{ label:'Renda passiva média mensal', data:data.rendaFixa.map(i=>i.valor || 0), borderColor:'#3d8ef0', backgroundColor:'rgba(61,142,240,0.18)', tension:0.25, fill:true, pointRadius:4 }] },
+        options:opts('Renda passiva média'),
+        plugins:extraPluginsRenda
+      });
+    };
+
+    const wrap = (name, after) => {
+      const old = A[name]?.bind(A);
+      if(!old || old.__v76Wrapped) return;
+      const fn = function(){ const ret = old(...arguments); setTimeout(() => { try{ after.call(this, name); }catch(e){ console.warn('v76 wrap', name, e); } }, 0); return ret; };
+      fn.__v76Wrapped = true;
+      A[name] = fn;
+    };
+    wrap('renderizarDashboard', function(){ this.v76EnsureTopBackupButton?.(); this.v75EnsureDashboardEvolutionCharts?.(); });
+    wrap('renderizarRenda', function(){ this.v75RenderDashboardEvolutionCharts?.(); });
+    wrap('renderizarHistorico', function(){ this.v75RenderDashboardEvolutionCharts?.(); });
+    wrap('atualizarTudo', function(){ this.v76EnsureTopBackupButton?.(); this.v75EnsureDashboardEvolutionCharts?.(); });
+    wrap('salvarConfig', function(){ this.v76EnsureTopBackupButton?.(); });
+
+    const oldNavigate = A.navigate?.bind(A);
+    if(oldNavigate && !oldNavigate.__v76Wrapped){
+      const fn = function(viewId, el){
+        const ret = oldNavigate(viewId, el);
+        setTimeout(() => {
+          try{
+            this.v76EnsureTopBackupButton?.();
+            if(viewId === 'view-dashboard') this.v75EnsureDashboardEvolutionCharts?.();
+          }catch(e){ console.warn('v76 navigate', e); }
+        }, 80);
+        return ret;
+      };
+      fn.__v76Wrapped = true;
+      A.navigate = fn;
+    }
+
+    try{
+      A.v76EnsureTopBackupButton?.();
+      A.v75EnsureDashboardEvolutionCharts?.();
+    }catch(e){ console.warn('v76 init', e); }
+    [300, 900, 1800, 3200].forEach(ms => setTimeout(() => {
+      try{ A.v76EnsureTopBackupButton?.(); A.v75EnsureDashboardEvolutionCharts?.(); }catch(e){}
+    }, ms));
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV76, 420));
+  installV76();
+  window.addEventListener('load', () => setTimeout(installV76, 460));
+})();
+</script>
+
 </body>
 </html>
