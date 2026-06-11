@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Patrimônio OS · v72 Ajustes aporte, dólar e configuração</title>
+<title>Patrimônio OS · v79 Renda PDF B3 + Avenue</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -12967,6 +12967,2183 @@ window.addEventListener('load', () => app.init());
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV76, 420));
   installV76();
   window.addEventListener('load', () => setTimeout(installV76, 460));
+})();
+</script>
+
+
+<style id="v77-ajustes-pedidos-style">
+/* v77: ajustes pedidos — ocultar KPIs 12m e preservar painel manual aberto */
+#view-dashboard .kpi-card.v77-hide-kpi-12m{display:none!important;}
+#view-dashboard .kpi-grid.v77-kpi-grid-ajustada{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;}
+</style>
+<script id="v77-ajustes-pedidos-script">
+(function(){
+  function getApp(){
+    try{
+      if(window.app) return window.app;
+      if(typeof app !== 'undefined'){ window.app = app; return app; }
+    }catch(e){}
+    return null;
+  }
+  function encKey(raw){
+    try{ return btoa(unescape(encodeURIComponent(raw))).replace(/=+$/,'').slice(0,96); }
+    catch(e){ return String(raw||'').replace(/[^a-zA-Z0-9]+/g,'_').slice(0,96); }
+  }
+  function installV77(){
+    const A = getApp();
+    if(!A || A.__v77AjustesPedidos) return;
+    A.__v77AjustesPedidos = true;
+    A.s = A.s || {};
+
+    const loadManualOpen = () => localStorage.getItem('wOS_v77ControleManualAberto') === 'true';
+    A.s.v77ControleManualAberto = loadManualOpen();
+
+    A.v77SalvarControleManualAberto = function(open){
+      this.s = this.s || {};
+      this.s.v77ControleManualAberto = !!open;
+      localStorage.setItem('wOS_v77ControleManualAberto', String(!!open));
+    };
+
+    A.v77AplicarEstadoControleManual = function(){
+      const card = document.getElementById('outrosAtivosContainer')?.closest('.card');
+      if(!card) return;
+      const focoDentro = !!(document.activeElement && card.contains(document.activeElement));
+      if(focoDentro) this.v77SalvarControleManualAberto?.(true);
+      const aberto = !!this.s?.v77ControleManualAberto || focoDentro;
+      card.classList.toggle('v70-manual-collapsed', !aberto);
+      card.classList.toggle('v69-manual-collapsed', !aberto);
+      const htmlAberto = '<i class="ph ph-caret-up"></i> Minimizar';
+      const htmlFechado = '<i class="ph ph-caret-down"></i> Mostrar';
+      card.querySelectorAll('.v70-manual-toggle,.v69-manual-toggle').forEach(btn => { btn.innerHTML = aberto ? htmlAberto : htmlFechado; });
+    };
+
+    const toggleManual = function(forceOpen){
+      const card = document.getElementById('outrosAtivosContainer')?.closest('.card');
+      if(!card) return;
+      const atualAberto = !(card.classList.contains('v70-manual-collapsed') || card.classList.contains('v69-manual-collapsed'));
+      const aberto = forceOpen === true ? true : forceOpen === false ? false : !atualAberto;
+      this.v77SalvarControleManualAberto?.(aberto);
+      this.v77AplicarEstadoControleManual?.();
+    };
+    A.v70ToggleControleManual = toggleManual;
+    A.v69ToggleControleManual = toggleManual;
+
+    A.v77AjustarDashboardKPIs = function(){
+      const kpiGrid = document.getElementById('kpiTotal')?.closest('.kpi-grid');
+      if(kpiGrid) kpiGrid.classList.add('v77-kpi-grid-ajustada');
+      document.getElementById('kpiRenda')?.closest('.kpi-card')?.classList.add('v77-hide-kpi-12m');
+      document.getElementById('kpiAporteMedio12m')?.closest('.kpi-card')?.classList.add('v77-hide-kpi-12m');
+
+      const ano = new Date().getFullYear();
+      const fmt = (v) => this.fmt ? this.fmt(v || 0) : ('R$ ' + Number(v || 0).toFixed(2).replace('.', ','));
+      const aporte = this.v76AporteMediaDashboardAno?.(ano) || this.getAporteAnoCorrentePonderadoResumo?.() || {valor:0, media:0, total:0, meses:0};
+      const renda = this.v76RendaPassivaMediaDashboardAno?.(ano) || this.getRendaAnoCorrentePonderadoResumo?.() || {valor:0, media:0, total:0, meses:0};
+      const aporteMedia = Number(aporte.valor ?? aporte.media ?? 0) || 0;
+      const rendaMedia = Number(renda.valor ?? renda.media ?? 0) || 0;
+      const aporteTotal = Number(aporte.total || 0) || 0;
+      const rendaTotal = Number(renda.total || 0) || 0;
+      const aporteMeses = aporte.meses || 0;
+      const rendaMeses = renda.meses || 0;
+
+      const aporteCard = document.getElementById('dashAporteAno')?.closest('.mini-metric');
+      const rendaCard = document.getElementById('dashRendaMediaAno')?.closest('.mini-metric');
+      const labelA = aporteCard?.querySelector('.label');
+      const labelR = rendaCard?.querySelector('.label');
+      if(labelA) labelA.textContent = 'Média aporte no ano';
+      if(labelR) labelR.textContent = 'Média renda passiva';
+      const dashAporte = document.getElementById('dashAporteAno');
+      const dashAporteSub = document.getElementById('dashAporteAnoSub');
+      const dashRenda = document.getElementById('dashRendaMediaAno');
+      const dashRendaSub = document.getElementById('dashRendaMediaAnoSub');
+      if(dashAporte) dashAporte.textContent = fmt(aporteMedia);
+      if(dashAporteSub) dashAporteSub.textContent = `${fmt(aporteTotal)} no ano${aporteMeses ? ' · '+aporteMeses+' mês(es)' : ''}`;
+      if(dashRenda) dashRenda.textContent = fmt(rendaMedia);
+      if(dashRendaSub) dashRendaSub.textContent = `${fmt(rendaTotal)} no ano${rendaMeses ? ' · '+rendaMeses+' mês(es)' : ''}`;
+
+      const mobAporte = document.getElementById('mobileAporteMedio');
+      const mobAporteCard = mobAporte?.closest('.mobile-card');
+      const mobAporteLabel = mobAporteCard?.querySelector('.mobile-label');
+      const mobAporteSub = document.getElementById('mobileAporteSub');
+      if(mobAporteLabel) mobAporteLabel.innerHTML = '<i class="ph-fill ph-trend-up"></i> Média aporte no ano';
+      if(mobAporte) mobAporte.textContent = fmt(aporteMedia);
+      if(mobAporteSub) mobAporteSub.textContent = `${fmt(aporteTotal)} no ano`;
+
+      const mobRenda = document.getElementById('mobileRenda12m');
+      const mobRendaCard = mobRenda?.closest('.mobile-card');
+      const mobRendaLabel = mobRendaCard?.querySelector('.mobile-label');
+      const mobRendaSub = document.getElementById('mobileRendaSub');
+      if(mobRendaLabel) mobRendaLabel.innerHTML = '<i class="ph-fill ph-hand-coins"></i> Média renda passiva';
+      if(mobRenda) mobRenda.textContent = fmt(rendaMedia);
+      if(mobRendaSub) mobRendaSub.textContent = `${fmt(rendaTotal)} no ano`;
+
+      const pills = document.getElementById('mobileQuickPills');
+      if(pills){
+        const dolarTxt = this.fmt ? this.fmt(this.getDolarHoje?.() || this.s?.dolarAtual || 0) : '';
+        pills.innerHTML = `<span class="mobile-pill"><i class="ph ph-trend-up"></i> Média aporte ano: ${fmt(aporteMedia)}</span><span class="mobile-pill"><i class="ph ph-hand-coins"></i> Média renda ano: ${fmt(rendaMedia)}</span>${dolarTxt ? `<span class="mobile-pill"><i class="ph ph-currency-dollar"></i> Dólar: ${dolarTxt}</span>` : ''}`;
+      }
+    };
+
+    if(!A.__v77LegacyPendKey && A.v75PendKey) A.__v77LegacyPendKey = A.v75PendKey.bind(A);
+    A.v77PendKeyEstavel = function(i){
+      const level = String(i?.level || '').toLowerCase();
+      if(level !== 'info' && this.__v77LegacyPendKey) return this.__v77LegacyPendKey(i);
+      const ticker = String(i?.ticker || String(i?.titulo || '').split('·')[0] || '').toUpperCase().trim();
+      const tituloBase = String(i?.titulo || '')
+        .replace(/\b\d+\s*dias\s+sem\s+compra\b/gi, 'dias sem compra')
+        .replace(/\bRenda\s+\d{4}\s+sem\s+lançamentos\s+mensais\b/gi, 'Renda ano sem lançamentos mensais')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const raw = [level || 'info', i?.categoria || '', i?.view || '', i?.action || '', ticker, tituloBase].join('|');
+      return encKey(raw);
+    };
+    A.v75PendKey = function(i){ return this.v77PendKeyEstavel?.(i) || encKey(i?.titulo || i?.id || ''); };
+
+    A.getPendenciasBaseV75 = function(opts={}){
+      const raw = (this.__v75OldGetPendenciasBaseV73 ? this.__v75OldGetPendenciasBaseV73() : []) || [];
+      const ignored = this.s?.v75PendIgnored || {};
+      return raw.map((i,idx) => {
+        const item = {...i, id:i.id || `v75p${idx}`};
+        const legacyKey = this.__v77LegacyPendKey ? this.__v77LegacyPendKey(item) : '';
+        const stableKey = this.v77PendKeyEstavel?.(item) || legacyKey || item.id;
+        item.v75legacyKey = legacyKey;
+        item.v75key = stableKey;
+        item.v75ignored = !!(ignored[stableKey] || (legacyKey && ignored[legacyKey]));
+        item.v75suggestion = this.v75ClassificarSugestao?.(item) || null;
+        return item;
+      }).filter(i => opts.includeIgnored || !i.v75ignored);
+    };
+    A.getPendenciasBaseV73 = function(){ return this.getPendenciasBaseV75?.({includeIgnored:false}) || []; };
+
+    const wrapAfter = (name, after) => {
+      const old = A[name]?.bind(A);
+      if(!old || old.__v77Wrapped) return;
+      const fn = function(){
+        const ret = old(...arguments);
+        setTimeout(() => { try{ after.call(this, name); }catch(e){ console.warn('v77 wrap', name, e); } }, 0);
+        return ret;
+      };
+      fn.__v77Wrapped = true;
+      A[name] = fn;
+    };
+    const afterAll = function(){ this.v77AjustarDashboardKPIs?.(); this.v77AplicarEstadoControleManual?.(); this.renderizarPendenciasV73?.(); this.v73RefreshBadges?.(); };
+    ['renderizarDashboard','renderizarDashboardV46','v70PrepararDashboardHierarquia','v70ApplyDashboardHierarchy','renderizarOutrosAtivos','adicionarOutroAtivo','removerOutroAtivo','atualizarOutroAtivo','reprocessarBase','atualizarTudo'].forEach(n => wrapAfter(n, afterAll));
+
+    const oldNavigate = A.navigate?.bind(A);
+    if(oldNavigate && !oldNavigate.__v77Wrapped){
+      const fn = function(viewId, el){
+        const ret = oldNavigate(viewId, el);
+        setTimeout(() => { try{ this.v77AjustarDashboardKPIs?.(); this.v77AplicarEstadoControleManual?.(); if(viewId === 'view-pendencias') this.renderizarPendenciasV73?.(); }catch(e){} }, 90);
+        return ret;
+      };
+      fn.__v77Wrapped = true;
+      A.navigate = fn;
+    }
+
+    try{ A.v77AjustarDashboardKPIs?.(); A.v77AplicarEstadoControleManual?.(); A.renderizarPendenciasV73?.(); A.v73RefreshBadges?.(); }catch(e){ console.warn('v77 init', e); }
+    [250, 800, 1600, 3000].forEach(ms => setTimeout(() => { try{ A.v77AjustarDashboardKPIs?.(); A.v77AplicarEstadoControleManual?.(); A.renderizarPendenciasV73?.(); A.v73RefreshBadges?.(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV77, 520));
+  installV77();
+  window.addEventListener('load', () => setTimeout(installV77, 560));
+})();
+</script>
+
+<script id="v78-renda-pdf-b3-js">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV78(){
+    const A = getApp();
+    if(!A || A.__v78RendaPDFInstalled) return;
+    A.__v78RendaPDFInstalled = true;
+    A.VERSAO_SISTEMA = 'v78_renda_pdf_b3';
+
+    const STORAGE_KEY = 'wOS_rendaImportadaPDF';
+    const escReg = s => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const ymKey = (ano, mes) => `${Number(ano)}-${String(Number(mes)).padStart(2,'0')}`;
+
+    A.v78EnsureRendaPDFState = function(){
+      if(!Array.isArray(this.s.rendaImportadaPDF)) {
+        const raw = this.loadJSON ? this.loadJSON(STORAGE_KEY, []) : JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        this.s.rendaImportadaPDF = Array.isArray(raw) ? raw : [];
+      }
+      return this.s.rendaImportadaPDF;
+    };
+
+    A.v78SalvarRendaPDF = function(){
+      this.v78EnsureRendaPDFState();
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.s.rendaImportadaPDF || [])); }catch(e){ console.warn('v78 renda pdf save', e); }
+    };
+
+    const oldMigrar = A.migrarEstruturas?.bind(A);
+    if(oldMigrar && !oldMigrar.__v78Wrapped){
+      const fn = function(){ const ret = oldMigrar(...arguments); this.v78EnsureRendaPDFState?.(); return ret; };
+      fn.__v78Wrapped = true;
+      A.migrarEstruturas = fn;
+    }
+
+    const oldSalvarTudo = A.salvarTudoLocal?.bind(A);
+    if(oldSalvarTudo && !oldSalvarTudo.__v78Wrapped){
+      const fn = function(){ const ret = oldSalvarTudo(...arguments); this.v78SalvarRendaPDF?.(); return ret; };
+      fn.__v78Wrapped = true;
+      A.salvarTudoLocal = fn;
+    }
+
+    const oldBackup = A.montarBackupPayload?.bind(A);
+    if(oldBackup && !oldBackup.__v78Wrapped){
+      const fn = function(){ const p = oldBackup(...arguments); p.rendaImportadaPDF = this.v78EnsureRendaPDFState?.() || []; return p; };
+      fn.__v78Wrapped = true;
+      A.montarBackupPayload = fn;
+    }
+
+    A.v78MesNomeParaNumero = function(nome){
+      const n = normTxt(nome).toLowerCase();
+      const mapa = {jan:1,janeiro:1,fev:2,fevereiro:2,mar:3,marco:3,abr:4,abril:4,mai:5,maio:5,jun:6,junho:6,jul:7,julho:7,ago:8,agosto:8,set:9,setembro:9,out:10,outubro:10,nov:11,novembro:11,dez:12,dezembro:12};
+      return mapa[n] || 0;
+    };
+
+    A.v78DetectarModeloRendaPDF = function(texto, fileName=''){
+      const t = normTxt(texto).toUpperCase();
+      const fn = String(fileName || '').toUpperCase();
+      if(t.includes('RELATORIO MENSAL CONSOLIDADO') && t.includes('PROVENTOS RECEBIDOS')) return 'B3_MENSAL';
+      if(t.includes('PROVENTOS RECEBIDOS') && (t.includes('B3') || fn.includes('RELATORIO-CONSOLIDADO'))) return 'B3_MENSAL';
+      if(t.includes('NOMAD') || t.includes('APEX CLEARING')) return 'NOMAD_PENDENTE';
+      if(t.includes('AVENUE')) return 'AVENUE_PENDENTE';
+      return 'DESCONHECIDO';
+    };
+
+    A.v78HashRendaPDF = function(p){
+      const raw = [p?.modelo, p?.arquivo, p?.ano, p?.mes, (p?.total||0).toFixed(2), (p?.itens||[]).map(i => `${i.ticker}:${i.data}:${i.evento}:${Number(i.valorLiquido||0).toFixed(2)}`).join('|')].join('§');
+      let h = 0;
+      for(let i=0;i<raw.length;i++) h = ((h << 5) - h + raw.charCodeAt(i)) | 0;
+      return 'v78_' + Math.abs(h).toString(36);
+    };
+
+    A.v78ParseRendaB3Mensal = function(texto, fileName=''){
+      const original = String(texto || '');
+      let clean = original.replace(/\s+/g, ' ').trim();
+      clean = clean.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç.\-])(?=\d{2}\/\d{2}\/\d{4}\s+(?:Dividendo|Rendimento|Juros\s+Sobre|Amortiza|Restitui))/g, '$1 ');
+
+      const idxs = [];
+      let idx = -1;
+      while((idx = clean.indexOf('Proventos recebidos', idx + 1)) >= 0) idxs.push(idx);
+      const start = idxs.length ? idxs[idxs.length - 1] : clean.search(/\bProventos\b/i);
+      if(start < 0) throw new Error('Não encontrei a seção “Proventos recebidos” no relatório B3.');
+      const after = clean.slice(start);
+      const endCandidates = ['Reembolsos de empréstimos de ativos','Reembolsos de emprestimos de ativos','Negociação','Negociacao'];
+      let end = after.length;
+      endCandidates.forEach(label => { const p = after.indexOf(label); if(p > 0 && p < end) end = p; });
+      let block = after.slice(0, end);
+
+      let mes = 0, ano = 0;
+      let mRef = block.match(/Proventos recebidos\s*-\s*([A-Za-zÀ-ÿçÇ]+)\s+de\s+(20\d{2})/i);
+      if(mRef){ mes = this.v78MesNomeParaNumero(mRef[1]); ano = parseInt(mRef[2], 10); }
+      if(!(mes && ano)) {
+        mRef = clean.match(/Data:\s*(\d{2})\/(20\d{2})/i);
+        if(mRef){ mes = parseInt(mRef[1], 10); ano = parseInt(mRef[2], 10); }
+      }
+      if(!(mes && ano)) {
+        const firstDate = block.match(/\b(\d{2})\/(\d{2})\/(20\d{2})\b/);
+        if(firstDate){ mes = parseInt(firstDate[2], 10); ano = parseInt(firstDate[3], 10); }
+      }
+      if(!(mes && ano)) throw new Error('Não consegui identificar o mês de referência do relatório.');
+
+      const eventos = 'Dividendo|Rendimento|Juros\\s+Sobre\\s+Capital\\s+Pr[oó]prio|Juros\\s+Sobre\\s+Capital\\s+Proprio|JCP|Amortiza[cç][aã]o|Restitui[cç][aã]o';
+      const re = new RegExp('\\b([A-Z0-9]{4,6}\\d{1,2})\\s*-\\s*(.+?)\\s+(\\d{2}\\/\\d{2}\\/\\d{4})\\s+(' + eventos + ')[\\s\\S]*?S\\/A\\s+([\\d.,]+)\\s+R\\$\\s*([\\d.,]+)\\s+R\\$\\s*([\\d.,]+)', 'gi');
+      const itens = [];
+      let m;
+      while((m = re.exec(block)) !== null) {
+        const ticker = String(m[1] || '').toUpperCase().trim();
+        const dataBR = m[3];
+        const evento = String(m[4] || '').replace(/\s+/g, ' ').trim();
+        const qtd = this.parseNum(m[5]);
+        const precoUnitario = this.parseNum(m[6]);
+        const valorLiquido = this.parseNum(m[7]);
+        if(!ticker || !(valorLiquido > 0)) continue;
+        itens.push({
+          ticker,
+          nome: String(m[2] || '').replace(/\s+/g, ' ').trim(),
+          data: this.parseDataBR ? this.parseDataBR(dataBR) : dataBR.split('/').reverse().join('-'),
+          dataBR,
+          evento,
+          quantidade: qtd,
+          precoUnitario,
+          valorLiquido
+        });
+      }
+
+      if(!itens.length) {
+        const semDados = /Voc[eê]\s+n[aã]o\s+possui\s+dados\s+dispon[ií]veis/i.test(block);
+        if(semDados) return { modelo:'B3_MENSAL', corretora:'B3', arquivo:fileName, ano, mes, itens:[], porAtivo:{}, total:0, totalPDF:0, divergencia:0, aviso:'Sem proventos no período.' };
+        throw new Error('A seção foi encontrada, mas nenhum provento foi reconhecido.');
+      }
+
+      const porAtivo = {};
+      itens.forEach(i => {
+        porAtivo[i.ticker] = porAtivo[i.ticker] || { ticker:i.ticker, total:0, eventos:0, itens:[] };
+        porAtivo[i.ticker].total += i.valorLiquido;
+        porAtivo[i.ticker].eventos += 1;
+        porAtivo[i.ticker].itens.push(i);
+      });
+      const total = itens.reduce((s,i)=>s + (i.valorLiquido || 0), 0);
+      const totalPDF = this.parseNum((block.match(/Total\s+R\$\s*([\d.]+,\d{2})/i) || [])[1] || 0);
+      const payload = { modelo:'B3_MENSAL', corretora:'B3', arquivo:fileName, ano, mes, itens, porAtivo, total, totalPDF, divergencia: totalPDF ? total - totalPDF : 0 };
+      payload.hash = this.v78HashRendaPDF(payload);
+      return payload;
+    };
+
+    A.v78ParserRendaPDF = function(texto, fileName=''){
+      const modelo = this.v78DetectarModeloRendaPDF(texto, fileName);
+      if(modelo === 'B3_MENSAL') return this.v78ParseRendaB3Mensal(texto, fileName);
+      if(modelo === 'NOMAD_PENDENTE') throw new Error('PDF da Nomad reconhecido, mas o padrão de proventos ainda não foi aprendido nesta versão. Envie o PDF da Nomad na próxima etapa.');
+      if(modelo === 'AVENUE_PENDENTE') throw new Error('PDF da Avenue reconhecido, mas o padrão de proventos ainda não foi aprendido nesta versão. Envie o PDF da Avenue na próxima etapa.');
+      throw new Error('Modelo de relatório não reconhecido para importação de proventos.');
+    };
+
+    A.v78InserirCardRendaPDF = function(){
+      const view = document.getElementById('view-renda');
+      if(!view || document.getElementById('rendaPdfImportCard')) return;
+      const matriz = document.getElementById('rendaMatrizHead')?.closest('.card');
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = 'rendaPdfImportCard';
+      card.innerHTML = `
+        <div class="card-hd">
+          <div class="card-title"><i class="ph-fill ph-file-pdf"></i> Importar proventos por PDF</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+              <i class="ph ph-upload-simple"></i> Selecionar extrato
+              <input accept="application/pdf,.pdf" onchange="app.processarRendaPDF(event)" style="display:none" type="file"/>
+            </label>
+            <button class="btn btn-success btn-sm" id="btnConfirmarRendaPDF" onclick="app.confirmarRendaPDFPreview()" disabled><i class="ph ph-plus-circle"></i> Confirmar e somar</button>
+            <button class="btn btn-outline btn-sm" onclick="app.limparRendaPDFPreview()"><i class="ph ph-broom"></i> Limpar prévia</button>
+          </div>
+        </div>
+        <div class="info-box">
+          Lê o extrato mensal consolidado da B3 e considera apenas <strong>dividendos, JCP, rendimentos e eventos equivalentes</strong>. Ao confirmar, o total líquido é somado ao campo mensal de dividendos da matriz abaixo, sem alterar a coluna de renda fixa.
+        </div>
+        <div id="rendaPdfPreview"><div class="empty-state" style="padding:24px"><i class="ph ph-file-pdf"></i><p>Nenhum extrato analisado ainda.</p></div></div>
+        <div class="grid-2" style="margin-top:16px;">
+          <div>
+            <div class="card-title" style="font-size:14px; margin-bottom:10px;"><i class="ph ph-ranking"></i> Top recebimentos por ativo desde jun/2026</div>
+            <div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Total</th><th>Eventos</th><th>Último mês</th></tr></thead><tbody id="rendaPdfTopBody"></tbody></table></div>
+          </div>
+          <div>
+            <div class="card-title" style="font-size:14px; margin-bottom:10px;"><i class="ph ph-clock-counter-clockwise"></i> Histórico de importações</div>
+            <div class="table-wrap"><table><thead><tr><th>Mês</th><th>Origem</th><th>Total</th><th>Arquivo</th></tr></thead><tbody id="rendaPdfHistBody"></tbody></table></div>
+          </div>
+        </div>`;
+      if(matriz) view.insertBefore(card, matriz);
+      else view.appendChild(card);
+    };
+
+    A.v78RenderPreviewRendaPDF = function(){
+      const box = document.getElementById('rendaPdfPreview');
+      if(!box) return;
+      const p = this.s.pendingRendaPDF;
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(btn) btn.disabled = !(p && (p.total || 0) >= 0 && Array.isArray(p.itens));
+      if(!p) {
+        box.innerHTML = `<div class="empty-state" style="padding:24px"><i class="ph ph-file-pdf"></i><p>Nenhum extrato analisado ainda.</p></div>`;
+        return;
+      }
+      if(p.erro) {
+        if(btn) btn.disabled = true;
+        box.innerHTML = `<div class="audit-item a-danger"><strong>Não foi possível importar</strong><div class="mini-note">${this.esc(p.erro)}</div></div>`;
+        return;
+      }
+      const dup = (this.v78EnsureRendaPDFState?.() || []).find(h => h.hash && h.hash === p.hash);
+      const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+      const futuro = atual + (p.total || 0);
+      const porAtivo = Object.values(p.porAtivo || {}).sort((a,b)=>(b.total||0)-(a.total||0));
+      const linhas = porAtivo.map(a => `<tr><td><strong>${this.esc(a.ticker)}</strong></td><td style="font-family:var(--font-mono); font-weight:700; color:var(--primary)">${this.fmt(a.total || 0)}</td><td>${a.eventos || 0}</td><td class="mini-note">${this.esc((a.itens || []).map(i => i.evento).join(' · '))}</td></tr>`).join('');
+      const itensHtml = (p.itens || []).map(i => `<tr><td>${this.esc(i.dataBR || '')}</td><td><strong>${this.esc(i.ticker)}</strong></td><td>${this.esc(i.evento)}</td><td style="font-family:var(--font-mono)">${this.fmtN(i.quantidade || 0, 2)}</td><td style="font-family:var(--font-mono)">${this.fmt(i.precoUnitario || 0)}</td><td style="font-family:var(--font-mono); font-weight:700">${this.fmt(i.valorLiquido || 0)}</td></tr>`).join('');
+      const diverg = Math.abs(p.divergencia || 0) > 0.01 ? `<span class="badge b-hold">Diferença vs total PDF: ${this.fmt(p.divergencia)}</span>` : `<span class="badge b-buy">Total confere${p.totalPDF ? ' com o PDF' : ''}</span>`;
+      box.innerHTML = `
+        <div class="sticky-summary" style="position:static;">
+          <div class="summary-chip"><strong>Origem:</strong> ${this.esc(p.modelo === 'B3_MENSAL' ? 'B3 mensal' : p.modelo)}</div>
+          <div class="summary-chip"><strong>Referência:</strong> ${String(p.mes).padStart(2,'0')}/${p.ano}</div>
+          <div class="summary-chip"><strong>Eventos:</strong> ${(p.itens || []).length}</div>
+          <div class="summary-chip"><strong>Total geral:</strong> <span style="color:var(--success);font-weight:800">${this.fmt(p.total || 0)}</span></div>
+          <div class="summary-chip"><strong>Campo atual:</strong> ${this.fmt(atual)} → <strong>${this.fmt(futuro)}</strong></div>
+          <div class="summary-chip">${diverg}</div>
+        </div>
+        ${dup ? `<div class="warn-box"><strong>Atenção:</strong> já existe uma importação aparentemente igual no histórico. Se confirmar, o valor será somado novamente ao mês.</div>` : ''}
+        <div class="grid-2" style="margin-bottom:0;">
+          <div><div class="mini-note" style="margin-bottom:8px;">Total por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Total líquido</th><th>Eventos</th><th>Tipos</th></tr></thead><tbody>${linhas || '<tr><td colspan="4">Sem proventos.</td></tr>'}</tbody></table></div></div>
+          <div><div class="mini-note" style="margin-bottom:8px;">Eventos reconhecidos</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Evento</th><th>Qtd</th><th>Unit.</th><th>Líquido</th></tr></thead><tbody>${itensHtml || '<tr><td colspan="6">Sem eventos.</td></tr>'}</tbody></table></div></div>
+        </div>`;
+    };
+
+    A.v78RenderRendaPDFPanel = function(){
+      this.v78EnsureRendaPDFState?.();
+      this.v78InserirCardRendaPDF?.();
+      this.v78RenderPreviewRendaPDF?.();
+      const topBody = document.getElementById('rendaPdfTopBody');
+      const histBody = document.getElementById('rendaPdfHistBody');
+      const hist = [...(this.s.rendaImportadaPDF || [])].sort((a,b)=>(b.confirmadoEm || '').localeCompare(a.confirmadoEm || ''));
+      if(histBody) {
+        histBody.innerHTML = hist.slice(0,8).map(h => `<tr><td><strong>${String(h.mes).padStart(2,'0')}/${h.ano}</strong></td><td>${this.esc(h.modelo === 'B3_MENSAL' ? 'B3' : h.modelo || '—')}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(h.total || 0)}</td><td class="mini-note" title="${this.esc(h.arquivo || '')}">${this.esc(h.arquivo || '').slice(0,34)}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Nenhuma importação confirmada.</p></div></td></tr>`;
+      }
+      if(topBody) {
+        const acc = {};
+        hist.filter(h => ymKey(h.ano, h.mes) >= '2026-06').forEach(h => {
+          Object.values(h.porAtivo || {}).forEach(a => {
+            const t = String(a.ticker || '').toUpperCase().trim();
+            if(!t) return;
+            acc[t] = acc[t] || { ticker:t, total:0, eventos:0, ultimo:'' };
+            acc[t].total += this.parseNum(a.total || 0);
+            acc[t].eventos += this.parseNum(a.eventos || (a.itens || []).length || 0);
+            const ym = ymKey(h.ano, h.mes);
+            if(ym > acc[t].ultimo) acc[t].ultimo = ym;
+          });
+        });
+        const linhas = Object.values(acc).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
+        topBody.innerHTML = linhas.map(a => `<tr><td><strong>${this.esc(a.ticker)}</strong></td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}</td><td>${a.eventos || 0}</td><td>${a.ultimo ? a.ultimo.split('-').reverse().join('/') : '—'}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Começa a contar a partir de jun/2026.</p></div></td></tr>`;
+      }
+    };
+
+    A.processarRendaPDF = async function(evt){
+      const file = (evt?.target?.files || [])[0];
+      if(!file) return;
+      this.v78EnsureRendaPDFState?.();
+      this.s.pendingRendaPDF = null;
+      this.v78RenderPreviewRendaPDF?.();
+      this.toast('Lendo extrato de proventos...', 'info', 2500);
+      try{
+        const texto = await this.extrairTextoPDF(file);
+        const parsed = this.v78ParserRendaPDF(texto, file.name);
+        parsed.arquivo = file.name;
+        parsed.confirmado = false;
+        parsed.hash = parsed.hash || this.v78HashRendaPDF(parsed);
+        this.s.pendingRendaPDF = parsed;
+        this.v78RenderRendaPDFPanel?.();
+        this.toast(`Extrato lido: ${this.fmt(parsed.total || 0)} em proventos. Confira antes de somar.`, 'success');
+      } catch(e){
+        this.s.pendingRendaPDF = { erro: e.message || 'Erro ao processar PDF', arquivo:file.name };
+        this.v78RenderRendaPDFPanel?.();
+        this.toast(e.message || 'Erro ao processar PDF.', 'error', 6000);
+      } finally {
+        if(evt?.target) evt.target.value = '';
+      }
+    };
+
+    A.confirmarRendaPDFPreview = function(){
+      const p = this.s.pendingRendaPDF;
+      if(!p || p.erro) { this.toast('Nenhum extrato válido para confirmar.', 'warning'); return; }
+      const total = this.parseNum(p.total || 0);
+      const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+      const msg = `Somar ${this.fmt(total)} aos dividendos de ${String(p.mes).padStart(2,'0')}/${p.ano}?\n\nValor atual: ${this.fmt(atual)}\nNovo valor: ${this.fmt(atual + total)}\n\nA coluna de renda fixa não será alterada.`;
+      if(!confirm(msg)) return;
+      const key = this.rendaKey(p.ano, p.mes);
+      const item = this.s.rendaManual[key] || { dividendos:0, rendaFixa:0 };
+      item.dividendos = this.parseNum(item.dividendos || 0) + total;
+      item.rendaFixa = this.parseNum(item.rendaFixa || 0);
+      this.s.rendaManual[key] = item;
+      this.s.rendaImportadaPDF = this.v78EnsureRendaPDFState?.() || [];
+      const histItem = {
+        id: this.idGen ? this.idGen() : String(Date.now()),
+        hash: p.hash || this.v78HashRendaPDF(p),
+        modelo: p.modelo,
+        corretora: p.corretora || 'B3',
+        arquivo: p.arquivo || '',
+        ano: p.ano,
+        mes: p.mes,
+        total,
+        totalPDF: p.totalPDF || 0,
+        divergencia: p.divergencia || 0,
+        eventos: (p.itens || []).length,
+        porAtivo: p.porAtivo || {},
+        itens: p.itens || [],
+        confirmadoEm: new Date().toISOString()
+      };
+      this.s.rendaImportadaPDF.push(histItem);
+      localStorage.setItem('wOS_rendaManual', JSON.stringify(this.s.rendaManual));
+      this.v78SalvarRendaPDF?.();
+      this.s.pendingRendaPDF = null;
+      this.renderizarRenda?.();
+      this.renderizarDashboard?.();
+      this.toast(`Proventos somados em ${String(p.mes).padStart(2,'0')}/${p.ano}: ${this.fmt(total)}.`, 'success');
+    };
+
+    A.limparRendaPDFPreview = function(){
+      this.s.pendingRendaPDF = null;
+      this.v78RenderRendaPDFPanel?.();
+      this.toast('Prévia de proventos limpa.', 'info');
+    };
+
+    const oldRenderRenda = A.renderizarRenda?.bind(A);
+    if(oldRenderRenda && !oldRenderRenda.__v78Wrapped){
+      const fn = function(){ const ret = oldRenderRenda(...arguments); setTimeout(() => { try{ this.v78RenderRendaPDFPanel?.(); }catch(e){ console.warn('v78 render panel', e); } }, 0); return ret; };
+      fn.__v78Wrapped = true;
+      A.renderizarRenda = fn;
+    }
+
+    const oldNavigate = A.navigate?.bind(A);
+    if(oldNavigate && !oldNavigate.__v78Wrapped){
+      const fn = function(viewId, el){ const ret = oldNavigate(viewId, el); if(viewId === 'view-renda') setTimeout(() => { try{ this.v78RenderRendaPDFPanel?.(); }catch(e){} }, 80); return ret; };
+      fn.__v78Wrapped = true;
+      A.navigate = fn;
+    }
+
+    try{ A.v78EnsureRendaPDFState?.(); A.v78RenderRendaPDFPanel?.(); }catch(e){ console.warn('v78 init renda pdf', e); }
+    [350, 900, 1800].forEach(ms => setTimeout(() => { try{ const app = getApp(); app?.v78RenderRendaPDFPanel?.(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV78, 680));
+  installV78();
+  window.addEventListener('load', () => setTimeout(installV78, 700));
+})();
+</script>
+
+
+<script id="v79-renda-pdf-avenue-js">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV79(){
+    const A = getApp();
+    if(!A || A.__v79RendaPDFAvenueInstalled) return;
+    A.__v79RendaPDFAvenueInstalled = true;
+    A.VERSAO_SISTEMA = 'v79_renda_pdf_b3_avenue';
+
+    const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const fmtUSD = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const addDaysISO = (iso, delta) => {
+      const d = new Date(String(iso || '') + 'T12:00:00Z');
+      if(isNaN(d.getTime())) return iso;
+      d.setUTCDate(d.getUTCDate() + delta);
+      return d.toISOString().slice(0,10);
+    };
+
+    A.v79MesInglesParaNumero = function(nome){
+      const n = normTxt(nome).toLowerCase();
+      const mapa = {jan:1,january:1,fev:2,feb:2,february:2,mar:3,march:3,abr:4,apr:4,april:4,mai:5,may:5,jun:6,june:6,jul:7,july:7,ago:8,aug:8,august:8,set:9,sep:9,september:9,out:10,oct:10,october:10,nov:11,november:11,dez:12,dec:12,december:12};
+      return mapa[n] || 0;
+    };
+
+    A.v79ParseValorUSD = function(v){
+      let s = String(v || '').trim().replace(/[^\d.,\-]/g, '');
+      if(!s) return 0;
+      // valores em dólar no relatório Avenue vêm em padrão americano: 1,234.56
+      if(s.includes('.') && s.includes(',')) s = s.replace(/,/g, '');
+      else if(s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      return parseFloat(s) || 0;
+    };
+
+    A.v79ExtrairTickerAvenueLinha = function(txt){
+      let s = normTxt(txt).toUpperCase();
+      s = s.replace(/\$\s*[\d,]+(?:\.\d{2})?/g, ' ');
+      s = s.replace(/RETENCAO|RETENÇÃO|IMPOSTOS?|SOBRE|DIVIDENDOS?|CREDITO|CRÉDITO|TAX|WITHHOLDING|NON|RESIDENT|PAID|DIVIDEND|DIVIDENDS|AND|INTEREST/g, ' ');
+      const cand = (s.match(/\b[A-Z][A-Z0-9.]{0,9}\b/g) || []).filter(x => !['C','D','DR','USD','US'].includes(x));
+      return (cand[cand.length - 1] || '').toUpperCase();
+    };
+
+    A.v79DetectarTipoLinhaAvenue = function(txt){
+      const t = normTxt(txt).toUpperCase();
+      if(/RETENCAO|RETENÇÃO|IMPOSTO|TAX|WITHHOLDING|NON\s*RESIDENT/.test(t)) return 'IMPOSTO';
+      if(/CREDITO|CRÉDITO|CREDIT|TAXABLE\s+DIVIDEND|DIVIDEND/.test(t)) return 'CREDITO';
+      return '';
+    };
+
+    A.v79ParseRendaAvenueMensal = function(texto, fileName=''){
+      const original = String(texto || '');
+      const clean = original.replace(/\s+/g, ' ').trim();
+
+      let ano = 0, mes = 0;
+      let mRef = clean.match(/\b([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})\s*-\s*([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})/i);
+      if(mRef){ mes = this.v79MesInglesParaNumero(mRef[3] || mRef[1]); ano = parseInt(mRef[4] || mRef[2], 10); }
+      if(!(mes && ano)) {
+        const firstDate = clean.match(/\b(\d{2})\/(\d{2})\/(20\d{2})\b/);
+        if(firstDate){ mes = parseInt(firstDate[2], 10); ano = parseInt(firstDate[3], 10); }
+      }
+      if(!(mes && ano)) throw new Error('Não consegui identificar o mês de referência do extrato Avenue.');
+
+      const start = clean.search(/DIVIDENDS\s+AND\s+INTEREST/i);
+      if(start < 0) throw new Error('Não encontrei a seção “DIVIDENDS AND INTEREST” no extrato Avenue.');
+      const after = clean.slice(start);
+      let end = after.length;
+      ['CASH & CASH EQUIVALENTS','DISCLOSURES','Total Dividends And Interest'].forEach(label => {
+        const p = after.search(new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+        if(p > 0 && p < end) end = label === 'Total Dividends And Interest' ? Math.min(after.length, p + 120) : p;
+      });
+      const block = after.slice(0, end);
+      if(/No\s+transactions|nenhum|sem\s+dados/i.test(block)) return { modelo:'AVENUE_MENSAL', corretora:'AVENUE', arquivo:fileName, ano, mes, itens:[], porAtivo:{}, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, aviso:'Sem dividendos no período.' };
+
+      const chunks = block.split(/(?=\bDIVIDEND\s+\d{2}\/\d{2}\/20\d{2}\s+C\b)/i).filter(x => /^DIVIDEND\s+\d{2}\/\d{2}\/20\d{2}\s+C\b/i.test(x));
+      const grupos = {};
+      chunks.forEach(chunk => {
+        const dataBR = (chunk.match(/\b(\d{2}\/\d{2}\/20\d{2})\b/) || [])[1];
+        const valMatches = [...chunk.matchAll(/\$\s*([\d,]+(?:\.\d{2}))/g)];
+        const valorUSD = valMatches.length ? this.v79ParseValorUSD(valMatches[valMatches.length - 1][1]) : 0;
+        const tipoLinha = this.v79DetectarTipoLinhaAvenue(chunk);
+        const ticker = this.v79ExtrairTickerAvenueLinha(chunk);
+        if(!dataBR || !ticker || !(valorUSD > 0) || !tipoLinha) return;
+        const data = this.parseDataBR ? this.parseDataBR(dataBR) : dataBR.split('/').reverse().join('-');
+        const key = `${data}|${ticker}`;
+        grupos[key] = grupos[key] || { ticker, data, dataBR, evento:'Dividendo Avenue', creditoUSD:0, impostoUSD:0, liquidoUSD:0, ptax:0, ptaxData:data, valorLiquido:0 };
+        if(tipoLinha === 'IMPOSTO') grupos[key].impostoUSD += valorUSD;
+        else grupos[key].creditoUSD += valorUSD;
+      });
+
+      let itens = Object.values(grupos).map(i => {
+        i.creditoUSD = Math.round((i.creditoUSD || 0) * 100) / 100;
+        i.impostoUSD = Math.round((i.impostoUSD || 0) * 100) / 100;
+        i.liquidoUSD = Math.round(((i.creditoUSD || 0) - (i.impostoUSD || 0)) * 100) / 100;
+        i.quantidade = 0;
+        i.precoUnitario = i.liquidoUSD;
+        return i;
+      }).filter(i => (i.creditoUSD || i.impostoUSD) > 0).sort((a,b)=>(a.data || '').localeCompare(b.data || '') || (a.ticker || '').localeCompare(b.ticker || ''));
+
+      if(!itens.length) throw new Error('A seção Avenue foi encontrada, mas nenhum crédito/retenção de dividendos foi reconhecido.');
+
+      const totalUSDBruto = Math.round(itens.reduce((s,i)=>s + (i.creditoUSD || 0), 0) * 100) / 100;
+      const totalUSDImposto = Math.round(itens.reduce((s,i)=>s + (i.impostoUSD || 0), 0) * 100) / 100;
+      const totalUSDLiquido = Math.round((totalUSDBruto - totalUSDImposto) * 100) / 100;
+      const totalLinha = block.match(/Total\s+Dividends\s+And\s+Interest\s*\$\s*([\d,]+(?:\.\d{2}))\s*\$\s*([\d,]+(?:\.\d{2}))/i);
+      const totalImpostoPDF = totalLinha ? this.v79ParseValorUSD(totalLinha[1]) : this.v79ParseValorUSD((clean.match(/Non-resident\s+tax\s+paid\s*\$\s*([\d,]+(?:\.\d{2}))/i) || [])[1]);
+      const totalBrutoPDF = totalLinha ? this.v79ParseValorUSD(totalLinha[2]) : this.v79ParseValorUSD((clean.match(/Taxable\s+dividends\s*\$\s*([\d,]+(?:\.\d{2}))/i) || [])[1]);
+
+      const porAtivo = {};
+      itens.forEach(i => {
+        porAtivo[i.ticker] = porAtivo[i.ticker] || { ticker:i.ticker, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, itens:[] };
+        porAtivo[i.ticker].total += i.valorLiquido || 0;
+        porAtivo[i.ticker].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[i.ticker].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[i.ticker].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[i.ticker].eventos += 1;
+        porAtivo[i.ticker].itens.push(i);
+      });
+
+      const payload = {
+        modelo:'AVENUE_MENSAL', corretora:'AVENUE', arquivo:fileName, ano, mes, itens, porAtivo,
+        total: 0,
+        totalUSDLiquido, totalUSDBruto, totalUSDImposto,
+        totalPDF: 0,
+        totalUSDBrutoPDF: totalBrutoPDF || 0,
+        totalUSDImpostoPDF: totalImpostoPDF || 0,
+        divergenciaUSD: (totalBrutoPDF || totalImpostoPDF) ? (totalUSDBruto - (totalBrutoPDF || 0)) + (totalUSDImposto - (totalImpostoPDF || 0)) : 0,
+        ptaxPendente: [...new Set(itens.map(i=>i.data).filter(Boolean))]
+      };
+      payload.hash = this.v78HashRendaPDF ? this.v78HashRendaPDF(payload) : String(Date.now());
+      return payload;
+    };
+
+    A.v79BuscarPTAXBCBComFallback = async function(dataIso){
+      const original = this.normData ? this.normData(dataIso || '') : String(dataIso || '');
+      if(!original) return { valor:0, dataCotacao:'' };
+      const manual = this.getPTAXParaData ? this.getPTAXParaData(original) : 0;
+      if(manual > 0) return { valor:manual, dataCotacao:original, origem:'historico' };
+      for(let back=0; back<=7; back++){
+        const d = addDaysISO(original, -back);
+        let v = this.getPTAXParaData ? this.getPTAXParaData(d) : 0;
+        if(!(v > 0) && this.buscarPTAXBCB) v = await this.buscarPTAXBCB(d);
+        if(v > 0){
+          if(this.setPTAXParaData){
+            this.setPTAXParaData(d, v, back ? 'bcb_dia_util_anterior' : 'bcb');
+            if(d !== original) this.setPTAXParaData(original, v, 'bcb_dia_util_anterior');
+          }
+          return { valor:v, dataCotacao:d, origem: back ? 'bcb_dia_util_anterior' : 'bcb' };
+        }
+      }
+      return { valor:0, dataCotacao:'' };
+    };
+
+    A.v79PreencherPTAXRendaPDF = async function(p){
+      if(!p || p.modelo !== 'AVENUE_MENSAL') return p;
+      const datas = [...new Set((p.itens || []).map(i => i.data).filter(Boolean))];
+      for(const data of datas){
+        const info = await this.v79BuscarPTAXBCBComFallback(data);
+        (p.itens || []).filter(i => i.data === data).forEach(i => {
+          i.ptax = info.valor || 0;
+          i.ptaxData = info.dataCotacao || data;
+          i.valorLiquido = i.ptax > 0 ? (i.liquidoUSD || 0) * i.ptax : 0;
+          i.precoUnitario = i.valorLiquido;
+        });
+      }
+      p.ptaxPendente = [...new Set((p.itens || []).filter(i => !(i.ptax > 0)).map(i => i.dataBR || i.data))];
+      p.total = (p.itens || []).reduce((s,i)=>s + (i.valorLiquido || 0), 0);
+      p.totalPDF = p.total;
+      const porAtivo = {};
+      (p.itens || []).forEach(i => {
+        const t = String(i.ticker || '').toUpperCase().trim();
+        if(!t) return;
+        porAtivo[t] = porAtivo[t] || { ticker:t, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, itens:[] };
+        porAtivo[t].total += i.valorLiquido || 0;
+        porAtivo[t].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[t].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[t].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[t].eventos += 1;
+        porAtivo[t].itens.push(i);
+      });
+      p.porAtivo = porAtivo;
+      p.hash = this.v78HashRendaPDF ? this.v78HashRendaPDF(p) : (p.hash || String(Date.now()));
+      return p;
+    };
+
+    const oldDetect = A.v78DetectarModeloRendaPDF?.bind(A);
+    A.v78DetectarModeloRendaPDF = function(texto, fileName=''){
+      const t = normTxt(texto).toUpperCase();
+      const fn = String(fileName || '').toUpperCase();
+      if((t.includes('AVENUE SECURITIES') || t.includes('AVENUE ACCOUNT NUMBER') || t.includes('2601 BAYSHORE') || fn.includes('STMT_')) && t.includes('DIVIDENDS AND INTEREST')) return 'AVENUE_MENSAL';
+      return oldDetect ? oldDetect(texto, fileName) : 'DESCONHECIDO';
+    };
+
+    const oldParser = A.v78ParserRendaPDF?.bind(A);
+    A.v78ParserRendaPDF = function(texto, fileName=''){
+      const modelo = this.v78DetectarModeloRendaPDF(texto, fileName);
+      if(modelo === 'AVENUE_MENSAL') return this.v79ParseRendaAvenueMensal(texto, fileName);
+      return oldParser ? oldParser(texto, fileName) : (()=>{ throw new Error('Modelo de relatório não reconhecido para importação de proventos.'); })();
+    };
+
+    const oldInserirCard = A.v78InserirCardRendaPDF?.bind(A);
+    A.v78InserirCardRendaPDF = function(){
+      const ret = oldInserirCard ? oldInserirCard(...arguments) : undefined;
+      const card = document.getElementById('rendaPdfImportCard');
+      if(card && !document.getElementById('btnRendaPdfPTAX')){
+        const hdActions = card.querySelector('.card-hd > div:last-child');
+        if(hdActions){
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-outline btn-sm';
+          btn.id = 'btnRendaPdfPTAX';
+          btn.type = 'button';
+          btn.innerHTML = '<i class="ph ph-currency-dollar"></i> Histórico PTAX';
+          btn.onclick = () => { try{ this.renderizarPTAXHistorico?.(); this.abrirModal?.('modalPTAXHistorico'); }catch(e){} };
+          hdActions.appendChild(btn);
+        }
+      }
+      return ret;
+    };
+
+    A.v79RenderPreviewAvenue = function(p, atual, futuro, dup){
+      const box = document.getElementById('rendaPdfPreviewBox');
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(!box) return;
+      const porAtivo = Object.values(p.porAtivo || {}).sort((a,b)=>(b.total || 0)-(a.total || 0));
+      const linhas = porAtivo.map(a => `<tr><td><strong>${this.esc(a.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDBruto || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDImposto || 0)}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(a.totalUSDLiquido || 0)}</td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}</td><td>${a.eventos || 0}</td></tr>`).join('');
+      const itensHtml = (p.itens || []).map(i => {
+        const ptaxTxt = i.ptax > 0 ? `${this.fmtN(i.ptax,4)}${i.ptaxData && i.ptaxData !== i.data ? `<div class="mini-note">cotação ${String(i.ptaxData).split('-').reverse().join('/')}</div>` : ''}` : '<span class="badge b-sell">PTAX pendente</span>';
+        return `<tr><td>${this.esc(i.dataBR || '')}</td><td><strong>${this.esc(i.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(i.creditoUSD || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(i.impostoUSD || 0)}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(i.liquidoUSD || 0)}</td><td style="font-family:var(--font-mono)">${ptaxTxt}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(i.valorLiquido || 0)}</td></tr>`;
+      }).join('');
+      const pend = (p.ptaxPendente || []).length;
+      if(btn) btn.disabled = !!pend;
+      const confereBruto = p.totalUSDBrutoPDF ? Math.abs((p.totalUSDBruto || 0) - p.totalUSDBrutoPDF) <= 0.01 : false;
+      const confereImp = p.totalUSDImpostoPDF ? Math.abs((p.totalUSDImposto || 0) - p.totalUSDImpostoPDF) <= 0.01 : false;
+      const badgeUSD = (confereBruto && confereImp) ? '<span class="badge b-buy">Totais em dólar conferem com o PDF</span>' : '<span class="badge b-hold">Confira os totais em dólar</span>';
+      box.innerHTML = `
+        <div class="sticky-summary" style="position:static;">
+          <div class="summary-chip"><strong>Origem:</strong> Avenue mensal</div>
+          <div class="summary-chip"><strong>Referência:</strong> ${String(p.mes).padStart(2,'0')}/${p.ano}</div>
+          <div class="summary-chip"><strong>Eventos líquidos:</strong> ${(p.itens || []).length}</div>
+          <div class="summary-chip"><strong>Crédito:</strong> ${fmtUSD(p.totalUSDBruto || 0)}</div>
+          <div class="summary-chip"><strong>Retenção:</strong> ${fmtUSD(p.totalUSDImposto || 0)}</div>
+          <div class="summary-chip"><strong>Líquido USD:</strong> <span style="color:var(--success);font-weight:800">${fmtUSD(p.totalUSDLiquido || 0)}</span></div>
+          <div class="summary-chip"><strong>Total a lançar:</strong> <span style="color:var(--success);font-weight:800">${this.fmt(p.total || 0)}</span></div>
+          <div class="summary-chip"><strong>Campo atual:</strong> ${this.fmt(atual)} → <strong>${this.fmt(futuro)}</strong></div>
+          <div class="summary-chip">${badgeUSD}</div>
+        </div>
+        ${pend ? `<div class="warn-box"><strong>PTAX pendente:</strong> não consegui obter a cotação para ${this.esc((p.ptaxPendente || []).join(', '))}. Cadastre no Histórico PTAX e leia o PDF novamente. Enquanto isso, a confirmação fica bloqueada.</div>` : ''}
+        ${dup ? `<div class="warn-box"><strong>Atenção:</strong> já existe uma importação aparentemente igual no histórico. Se confirmar, o valor será somado novamente ao mês.</div>` : ''}
+        <div class="info-box">Para a Avenue, o sistema usa o valor líquido por ativo: <strong>crédito de dividendos menos retenção de imposto</strong>. O total mensal lançado na matriz é a soma desses líquidos convertidos por PTAX da data; quando a data não tem cotação, usa a última PTAX disponível anterior e mostra a data usada na linha.</div>
+        <div class="grid-2" style="margin-bottom:0;">
+          <div><div class="mini-note" style="margin-bottom:8px;">Total por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Crédito USD</th><th>Retenção USD</th><th>Líquido USD</th><th>Líquido R$</th><th>Eventos</th></tr></thead><tbody>${linhas || '<tr><td colspan="6">Sem dividendos.</td></tr>'}</tbody></table></div></div>
+          <div><div class="mini-note" style="margin-bottom:8px;">Eventos reconhecidos</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Crédito</th><th>Retenção</th><th>Líquido USD</th><th>PTAX</th><th>Líquido R$</th></tr></thead><tbody>${itensHtml || '<tr><td colspan="7">Sem eventos.</td></tr>'}</tbody></table></div></div>
+        </div>`;
+    };
+
+    const oldPreview = A.v78RenderPreviewRendaPDF?.bind(A);
+    A.v78RenderPreviewRendaPDF = function(){
+      const p = this.s.pendingRendaPDF;
+      const box = document.getElementById('rendaPdfPreviewBox');
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(!box) return oldPreview ? oldPreview(...arguments) : undefined;
+      if(p && !p.erro && p.modelo === 'AVENUE_MENSAL'){
+        const dup = (this.v78EnsureRendaPDFState?.() || []).find(h => h.hash && h.hash === p.hash);
+        const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+        const futuro = atual + (p.total || 0);
+        return this.v79RenderPreviewAvenue(p, atual, futuro, dup);
+      }
+      const ret = oldPreview ? oldPreview(...arguments) : undefined;
+      if(btn && p && p.ptaxPendente && p.ptaxPendente.length) btn.disabled = true;
+      return ret;
+    };
+
+    A.processarRendaPDF = async function(evt){
+      const file = (evt?.target?.files || [])[0];
+      if(!file) return;
+      this.v78EnsureRendaPDFState?.();
+      this.s.pendingRendaPDF = null;
+      this.v78RenderPreviewRendaPDF?.();
+      this.toast('Lendo extrato de proventos...', 'info', 2500);
+      try{
+        const texto = await this.extrairTextoPDF(file);
+        let parsed = this.v78ParserRendaPDF(texto, file.name);
+        parsed.arquivo = file.name;
+        if(parsed.modelo === 'AVENUE_MENSAL') parsed = await this.v79PreencherPTAXRendaPDF(parsed);
+        parsed.confirmado = false;
+        parsed.hash = parsed.hash || (this.v78HashRendaPDF ? this.v78HashRendaPDF(parsed) : String(Date.now()));
+        this.s.pendingRendaPDF = parsed;
+        this.v78RenderRendaPDFPanel?.();
+        const msg = parsed.modelo === 'AVENUE_MENSAL'
+          ? `Extrato lido: ${fmtUSD(parsed.totalUSDLiquido || 0)} líquidos (${this.fmt(parsed.total || 0)} convertidos). Confira antes de somar.`
+          : `Extrato lido: ${this.fmt(parsed.total || 0)} em proventos. Confira antes de somar.`;
+        this.toast(msg, 'success');
+      } catch(e){
+        this.s.pendingRendaPDF = { erro: e.message || 'Erro ao processar PDF', arquivo:file.name };
+        this.v78RenderRendaPDFPanel?.();
+        this.toast(e.message || 'Erro ao processar PDF.', 'error', 6000);
+      } finally {
+        if(evt?.target) evt.target.value = '';
+      }
+    };
+
+    A.confirmarRendaPDFPreview = function(){
+      const p = this.s.pendingRendaPDF;
+      if(!p || p.erro) { this.toast('Nenhum extrato válido para confirmar.', 'warning'); return; }
+      if(p.modelo === 'AVENUE_MENSAL' && (p.ptaxPendente || []).length) { this.toast('Há PTAX pendente. Cadastre/busque a cotação e leia o PDF novamente antes de confirmar.', 'warning', 5000); return; }
+      const total = this.parseNum(p.total || 0);
+      const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+      const extraUSD = p.modelo === 'AVENUE_MENSAL' ? `\nLíquido USD: ${fmtUSD(p.totalUSDLiquido || 0)}\nCrédito: ${fmtUSD(p.totalUSDBruto || 0)} | Retenção: ${fmtUSD(p.totalUSDImposto || 0)}\n` : '';
+      const msg = `Somar ${this.fmt(total)} aos dividendos de ${String(p.mes).padStart(2,'0')}/${p.ano}?${extraUSD}\nValor atual: ${this.fmt(atual)}\nNovo valor: ${this.fmt(atual + total)}\n\nA coluna de renda fixa não será alterada.`;
+      if(!confirm(msg)) return;
+      const key = this.rendaKey(p.ano, p.mes);
+      const item = this.s.rendaManual[key] || { dividendos:0, rendaFixa:0 };
+      item.dividendos = this.parseNum(item.dividendos || 0) + total;
+      item.rendaFixa = this.parseNum(item.rendaFixa || 0);
+      this.s.rendaManual[key] = item;
+      this.s.rendaImportadaPDF = this.v78EnsureRendaPDFState?.() || [];
+      const histItem = {
+        id: this.idGen ? this.idGen() : String(Date.now()),
+        hash: p.hash || (this.v78HashRendaPDF ? this.v78HashRendaPDF(p) : String(Date.now())),
+        modelo: p.modelo,
+        corretora: p.corretora || (p.modelo === 'AVENUE_MENSAL' ? 'AVENUE' : 'B3'),
+        arquivo: p.arquivo || '',
+        ano: p.ano,
+        mes: p.mes,
+        total,
+        totalPDF: p.totalPDF || 0,
+        divergencia: p.divergencia || 0,
+        totalUSDLiquido: p.totalUSDLiquido || 0,
+        totalUSDBruto: p.totalUSDBruto || 0,
+        totalUSDImposto: p.totalUSDImposto || 0,
+        totalUSDBrutoPDF: p.totalUSDBrutoPDF || 0,
+        totalUSDImpostoPDF: p.totalUSDImpostoPDF || 0,
+        eventos: (p.itens || []).length,
+        porAtivo: p.porAtivo || {},
+        itens: p.itens || [],
+        confirmadoEm: new Date().toISOString()
+      };
+      this.s.rendaImportadaPDF.push(histItem);
+      localStorage.setItem('wOS_rendaManual', JSON.stringify(this.s.rendaManual));
+      this.v78SalvarRendaPDF?.();
+      this.s.pendingRendaPDF = null;
+      this.renderizarRenda?.();
+      this.renderizarDashboard?.();
+      this.toast(`Proventos somados em ${String(p.mes).padStart(2,'0')}/${p.ano}: ${this.fmt(total)}.`, 'success');
+    };
+
+    const oldPanel = A.v78RenderRendaPDFPanel?.bind(A);
+    if(oldPanel && !oldPanel.__v79Wrapped){
+      const fn = function(){ const ret = oldPanel(...arguments); try{ this.v78InserirCardRendaPDF?.(); }catch(e){} return ret; };
+      fn.__v79Wrapped = true;
+      A.v78RenderRendaPDFPanel = fn;
+    }
+
+    try{ A.v78RenderRendaPDFPanel?.(); }catch(e){ console.warn('v79 init avenue renda pdf', e); }
+    [450, 1000, 2000].forEach(ms => setTimeout(() => { try{ const app = getApp(); app?.v78RenderRendaPDFPanel?.(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV79, 900));
+  installV79();
+  window.addEventListener('load', () => setTimeout(installV79, 930));
+})();
+</script>
+
+
+<!-- v82: correção Avenue/PTAX inserida no fim real do body para não quebrar a tela inicial -->
+<script id="v80-renda-pdf-avenue-fix-js">
+
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV80(){
+    const A = getApp();
+    if(!A || A.__v80RendaPDFAvenueFixInstalled) return;
+    A.__v80RendaPDFAvenueFixInstalled = true;
+    A.VERSAO_SISTEMA = 'v80_renda_pdf_b3_avenue_ptax_exata';
+
+    const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const fmtUSD = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const ymKey = (ano, mes) => `${Number(ano)}-${String(Number(mes)).padStart(2,'0')}`;
+    const brToIso = br => {
+      const m = String(br || '').match(/^(\d{2})\/(\d{2})\/(20\d{2})$/);
+      return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+    };
+    const isoToBR = iso => {
+      const m = String(iso || '').match(/^(20\d{2})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || '');
+    };
+    const parseUSD = v => {
+      let s = String(v || '').trim().replace(/[^\d.,\-]/g, '');
+      if(!s) return 0;
+      if(s.includes('.') && s.includes(',')) s = s.replace(/,/g, '');
+      else if(s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      return parseFloat(s) || 0;
+    };
+    const round2 = v => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100;
+
+    A.s.ptaxHistoricoMeta = A.s.ptaxHistoricoMeta || (A.loadJSON ? A.loadJSON('wOS_ptaxHistoricoMeta', {}) : (()=>{ try{return JSON.parse(localStorage.getItem('wOS_ptaxHistoricoMeta')||'{}')}catch(e){return {}} })());
+
+    const oldSetPTAX = A.setPTAXParaData?.bind(A);
+    if(oldSetPTAX && !A.setPTAXParaData.__v80MetaWrapped){
+      const fn = function(data, valor, origem='manual', extra={}){
+        const d = this.normData ? this.normData(data || '') : String(data || '').slice(0,10);
+        const v = this.parseNum ? this.parseNum(valor) : Number(String(valor || '').replace(',', '.'));
+        const ok = oldSetPTAX(data, valor, origem);
+        if(ok && d && v > 0){
+          this.s.ptaxHistoricoMeta = this.s.ptaxHistoricoMeta || {};
+          const anterior = this.s.ptaxHistoricoMeta[d] || {};
+          this.s.ptaxHistoricoMeta[d] = {
+            ...anterior,
+            valor: v,
+            origem: origem || anterior.origem || 'manual',
+            fonte: extra.fonte || anterior.fonte || (String(origem || '').startsWith('bcb') ? 'Banco Central/PTAX venda' : 'manual'),
+            dataCotacao: extra.dataCotacao || d,
+            atualizadoEm: new Date().toISOString(),
+            ultimoUso: extra.uso || anterior.ultimoUso || '',
+            observacao: extra.observacao || anterior.observacao || ''
+          };
+          if(this.saveJSON) this.saveJSON('wOS_ptaxHistoricoMeta', this.s.ptaxHistoricoMeta);
+          else localStorage.setItem('wOS_ptaxHistoricoMeta', JSON.stringify(this.s.ptaxHistoricoMeta));
+        }
+        return ok;
+      };
+      fn.__v80MetaWrapped = true;
+      A.setPTAXParaData = fn;
+    }
+
+    A.v80ParseValorUSD = parseUSD;
+
+    A.v80ExtrairTickerAvenueLinha = function(chunk){
+      let raw = normTxt(chunk).toUpperCase();
+      raw = raw.split(/TOTAL\s+DIVIDENDS\s+AND\s+INTEREST/i)[0];
+      raw = raw.split(/ALL\s+INVESTMENT\s+POSITIONS|EXCESS\s+CASH|SWEEP\s+PROGRAM|TOTAL\s+COST|PAGE\s+\d+/i)[0];
+      raw = raw.replace(/^DIVIDEND\s+\d{2}\/\d{2}\/20\d{2}\s+C\s+/i, '');
+
+      const direct = raw.match(/(?:RETENCAO\s+IMPOSTOS?\s+SOBRE\s+DIVIDENDOS?|CREDITO\s+DIVIDENDOS?|CREDIT\s+DIVIDENDS?|DIVIDEND\s+CREDIT|WITHHOLDING[^$]{0,60}?DIVIDENDS?)\s+([A-Z][A-Z0-9.]{0,9})\b/i);
+      if(direct && direct[1] && !/^US$|^USD$/.test(direct[1])) return direct[1].toUpperCase();
+
+      let s = raw.replace(/\$\s*[\d,]+(?:\.\d{2})?/g, ' ');
+      s = s.replace(/\b(RETENCAO|RETENÇÃO|RETIDO|IMPOSTOS?|SOBRE|DIVIDENDOS?|CREDITO|CRÉDITO|CREDIT|TAX|TAXES|WITHHOLDING|NON|RESIDENT|PAID|DIVIDEND|DIVIDENDS|AND|INTEREST|TOTAL|ACCOUNT|TYPE|DESCRIPTION|DEBIT|CREDIT|QUANTITY|PRICE)\b/g, ' ');
+      const banned = new Set(['USD','US','DR','OF','THE','INC','LLC','CORP','CORPORATION','CLASS','PAGE','A','B']);
+      const cand = (s.match(/\b[A-Z][A-Z0-9.]{0,9}\b/g) || []).filter(x => !banned.has(x));
+      return (cand[cand.length - 1] || '').toUpperCase();
+    };
+
+    A.v80DetectarTipoLinhaAvenue = function(txt){
+      const t = normTxt(txt).toUpperCase();
+      if(/RETENCAO|RETENÇÃO|IMPOSTO|WITHHOLDING|NON\s*RESIDENT\s*TAX/.test(t)) return 'IMPOSTO';
+      if(/CREDITO|CRÉDITO|CREDIT|TAXABLE\s+DIVIDEND|DIVIDEND/.test(t)) return 'CREDITO';
+      return '';
+    };
+
+    A.v80ParseRendaAvenueMensal = function(texto, fileName=''){
+      const clean = normTxt(texto);
+      let ano = 0, mes = 0;
+      const mRef = clean.match(/\b([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})\s*-\s*([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})/i);
+      if(mRef){
+        const mesFn = this.v79MesInglesParaNumero || function(nome){ const m={january:1,jan:1,february:2,feb:2,march:3,mar:3,april:4,apr:4,may:5,june:6,jun:6,july:7,jul:7,august:8,aug:8,september:9,sep:9,october:10,oct:10,november:11,nov:11,december:12,dec:12}; return m[String(nome||'').toLowerCase()]||0; };
+        mes = mesFn.call(this, mRef[3] || mRef[1]);
+        ano = parseInt(mRef[4] || mRef[2], 10);
+      }
+      if(!(mes && ano)){
+        const firstDate = clean.match(/\b(\d{2})\/(\d{2})\/(20\d{2})\b/);
+        if(firstDate){ mes = parseInt(firstDate[2], 10); ano = parseInt(firstDate[3], 10); }
+      }
+      if(!(mes && ano)) throw new Error('Não consegui identificar o mês de referência do extrato Avenue.');
+
+      const start = clean.search(/DIVIDENDS\s+AND\s+INTEREST/i);
+      if(start < 0) throw new Error('Não encontrei a seção “DIVIDENDS AND INTEREST” no extrato Avenue.');
+      const after = clean.slice(start);
+      const totalLinha = after.match(/Total\s+Dividends\s+And\s+Interest\s*\$\s*([\d,]+(?:\.\d{2}))\s*\$\s*([\d,]+(?:\.\d{2}))/i);
+      let end = totalLinha && typeof totalLinha.index === 'number' ? totalLinha.index : after.length;
+      ['CASH & CASH EQUIVALENTS','DISCLOSURES','All investment positions held','Excess cash in your brokerage'].forEach(label => {
+        const re = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const p = after.search(re);
+        if(p > 0 && p < end) end = p;
+      });
+      const block = after.slice(0, end);
+      if(/No\s+transactions|nenhum|sem\s+dados/i.test(block)){
+        return { modelo:'AVENUE_MENSAL', corretora:'AVENUE', arquivo:fileName, ano, mes, itens:[], porAtivo:{}, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, aviso:'Sem dividendos no período.', ptaxPendente:[] };
+      }
+
+      const chunks = block.split(/(?=\bDIVIDEND\s+\d{2}\/\d{2}\/20\d{2}\s+C\b)/i).filter(x => /^DIVIDEND\s+\d{2}\/\d{2}\/20\d{2}\s+C\b/i.test(normTxt(x)));
+      const grupos = {};
+      let linhasCredito = 0, linhasImposto = 0;
+      chunks.forEach(chunk => {
+        const c = normTxt(chunk).split(/TOTAL\s+DIVIDENDS\s+AND\s+INTEREST/i)[0];
+        const dataBR = (c.match(/\b(\d{2}\/\d{2}\/20\d{2})\b/) || [])[1];
+        const valMatch = c.match(/\$\s*([\d,]+(?:\.\d{2}))/);
+        const valorUSD = valMatch ? parseUSD(valMatch[1]) : 0;
+        const tipoLinha = this.v80DetectarTipoLinhaAvenue(c);
+        const ticker = this.v80ExtrairTickerAvenueLinha(c);
+        if(!dataBR || !ticker || !(valorUSD > 0) || !tipoLinha) return;
+        const data = brToIso(dataBR);
+        const key = `${data}|${ticker}`;
+        grupos[key] = grupos[key] || { ticker, data, dataBR, evento:'Dividendo Avenue', creditoUSD:0, impostoUSD:0, liquidoUSD:0, valorLiquido:0, ptax:0, ptaxData:data, linhasCredito:0, linhasImposto:0 };
+        if(tipoLinha === 'IMPOSTO') { grupos[key].impostoUSD += valorUSD; grupos[key].linhasImposto += 1; linhasImposto += 1; }
+        else { grupos[key].creditoUSD += valorUSD; grupos[key].linhasCredito += 1; linhasCredito += 1; }
+      });
+
+      const itens = Object.values(grupos).map(i => {
+        i.creditoUSD = round2(i.creditoUSD);
+        i.impostoUSD = round2(i.impostoUSD);
+        i.liquidoUSD = round2(i.creditoUSD - i.impostoUSD);
+        i.quantidade = 0;
+        i.precoUnitario = i.liquidoUSD;
+        return i;
+      }).filter(i => (i.creditoUSD || i.impostoUSD) > 0).sort((a,b)=>(a.data || '').localeCompare(b.data || '') || (a.ticker || '').localeCompare(b.ticker || ''));
+
+      if(!itens.length) throw new Error('A seção Avenue foi encontrada, mas nenhum crédito/retenção de dividendos foi reconhecido.');
+
+      const totalUSDBruto = round2(itens.reduce((s,i)=>s + (i.creditoUSD || 0), 0));
+      const totalUSDImposto = round2(itens.reduce((s,i)=>s + (i.impostoUSD || 0), 0));
+      const totalUSDLiquido = round2(totalUSDBruto - totalUSDImposto);
+      const totalUSDImpostoPDF = totalLinha ? parseUSD(totalLinha[1]) : parseUSD((clean.match(/Non-resident\s+tax\s+paid\s*\$\s*([\d,]+(?:\.\d{2}))/i) || [])[1]);
+      const totalUSDBrutoPDF = totalLinha ? parseUSD(totalLinha[2]) : parseUSD((clean.match(/Taxable\s+dividends\s*\$\s*([\d,]+(?:\.\d{2}))/i) || [])[1]);
+
+      const porAtivo = {};
+      itens.forEach(i => {
+        porAtivo[i.ticker] = porAtivo[i.ticker] || { ticker:i.ticker, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, linhasCredito:0, linhasImposto:0, itens:[] };
+        porAtivo[i.ticker].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[i.ticker].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[i.ticker].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[i.ticker].eventos += 1;
+        porAtivo[i.ticker].linhasCredito += i.linhasCredito || 0;
+        porAtivo[i.ticker].linhasImposto += i.linhasImposto || 0;
+        porAtivo[i.ticker].itens.push(i);
+      });
+      Object.values(porAtivo).forEach(a => { a.totalUSDLiquido = round2(a.totalUSDLiquido); a.totalUSDBruto = round2(a.totalUSDBruto); a.totalUSDImposto = round2(a.totalUSDImposto); });
+
+      const payload = {
+        modelo:'AVENUE_MENSAL', corretora:'AVENUE', arquivo:fileName, ano, mes, itens, porAtivo,
+        total:0,
+        totalUSDLiquido, totalUSDBruto, totalUSDImposto,
+        totalPDF:0,
+        totalUSDBrutoPDF: totalUSDBrutoPDF || 0,
+        totalUSDImpostoPDF: totalUSDImpostoPDF || 0,
+        divergenciaUSDBruto: totalUSDBrutoPDF ? round2(totalUSDBruto - totalUSDBrutoPDF) : 0,
+        divergenciaUSDImposto: totalUSDImpostoPDF ? round2(totalUSDImposto - totalUSDImpostoPDF) : 0,
+        linhasCredito, linhasImposto,
+        ptaxPendente:[...new Set(itens.map(i=>i.data).filter(Boolean))]
+      };
+      payload.hash = `AVENUE|${ano}-${String(mes).padStart(2,'0')}|${payload.totalUSDBruto.toFixed(2)}|${payload.totalUSDImposto.toFixed(2)}|` + itens.map(i=>`${i.data}:${i.ticker}:${i.creditoUSD.toFixed(2)}:${i.impostoUSD.toFixed(2)}`).join('|');
+      return payload;
+    };
+
+    A.v79ParseRendaAvenueMensal = A.v80ParseRendaAvenueMensal;
+
+    A.v80BuscarPTAXBCBExata = async function(dataIso){
+      const original = this.normData ? this.normData(dataIso || '') : String(dataIso || '').slice(0,10);
+      if(!original) return { valor:0, dataCotacao:'', origem:'' };
+      const manual = this.getPTAXParaData ? this.getPTAXParaData(original) : 0;
+      if(manual > 0) return { valor:manual, dataCotacao:original, origem:'historico' };
+      const v = this.buscarPTAXBCB ? await this.buscarPTAXBCB(original) : 0;
+      if(v > 0){
+        this.setPTAXParaData?.(original, v, 'bcb_pdf_renda', { fonte:'Banco Central/PTAX venda', dataCotacao:original, uso:'proventos Avenue' });
+        return { valor:v, dataCotacao:original, origem:'bcb_pdf_renda' };
+      }
+      return { valor:0, dataCotacao:original, origem:'pendente' };
+    };
+
+    A.v80PreencherPTAXRendaPDF = async function(p){
+      if(!p || p.modelo !== 'AVENUE_MENSAL') return p;
+      const datas = [...new Set((p.itens || []).map(i => i.data).filter(Boolean))];
+      for(const data of datas){
+        const info = await this.v80BuscarPTAXBCBExata(data);
+        (p.itens || []).filter(i => i.data === data).forEach(i => {
+          i.ptax = info.valor || 0;
+          i.ptaxData = data;
+          i.ptaxOrigem = info.origem || '';
+          i.valorLiquido = i.ptax > 0 ? round2((i.liquidoUSD || 0) * i.ptax) : 0;
+          i.precoUnitario = i.valorLiquido;
+          i.formulaBRL = i.ptax > 0 ? `${fmtUSD(i.liquidoUSD || 0)} × ${Number(i.ptax).toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4})} = ${this.fmt ? this.fmt(i.valorLiquido || 0) : i.valorLiquido}` : 'PTAX pendente';
+        });
+      }
+      p.ptaxPendente = [...new Set((p.itens || []).filter(i => !(i.ptax > 0)).map(i => i.dataBR || i.data))];
+      p.total = round2((p.itens || []).reduce((s,i)=>s + (i.valorLiquido || 0), 0));
+      p.totalPDF = p.total;
+      const porAtivo = {};
+      (p.itens || []).forEach(i => {
+        const t = String(i.ticker || '').toUpperCase().trim();
+        if(!t) return;
+        porAtivo[t] = porAtivo[t] || { ticker:t, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, linhasCredito:0, linhasImposto:0, ptaxDatas:[], itens:[] };
+        porAtivo[t].total += i.valorLiquido || 0;
+        porAtivo[t].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[t].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[t].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[t].eventos += 1;
+        porAtivo[t].linhasCredito += i.linhasCredito || 0;
+        porAtivo[t].linhasImposto += i.linhasImposto || 0;
+        const ptaxLabel = i.ptax > 0 ? `${i.dataBR}: ${Number(i.ptax).toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4})}` : `${i.dataBR}: pendente`;
+        if(!porAtivo[t].ptaxDatas.includes(ptaxLabel)) porAtivo[t].ptaxDatas.push(ptaxLabel);
+        porAtivo[t].itens.push(i);
+      });
+      Object.values(porAtivo).forEach(a => {
+        a.total = round2(a.total); a.totalUSDLiquido = round2(a.totalUSDLiquido); a.totalUSDBruto = round2(a.totalUSDBruto); a.totalUSDImposto = round2(a.totalUSDImposto);
+      });
+      p.porAtivo = porAtivo;
+      return p;
+    };
+
+    A.v79PreencherPTAXRendaPDF = A.v80PreencherPTAXRendaPDF;
+
+    A.v80RenderPreviewAvenue = function(p, atual, futuro, dup){
+      const box = document.getElementById('rendaPdfPreview') || document.getElementById('rendaPdfPreviewBox');
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(!box) return;
+      const pend = (p.ptaxPendente || []).length;
+      if(btn) btn.disabled = !!pend;
+      const porAtivo = Object.values(p.porAtivo || {}).sort((a,b)=>(b.total || 0)-(a.total || 0));
+      const linhas = porAtivo.map(a => {
+        const ptaxInfo = (a.ptaxDatas || []).join(' · ') || '—';
+        return `<tr><td><strong>${this.esc(a.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDBruto || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDImposto || 0)}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(a.totalUSDLiquido || 0)}</td><td class="mini-note">${this.esc(ptaxInfo)}</td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}</td><td>${a.eventos || 0}</td></tr>`;
+      }).join('');
+      const itensHtml = (p.itens || []).map(i => {
+        const ptaxTxt = i.ptax > 0 ? `${this.fmtN(i.ptax,4)}<div class="mini-note">${this.esc(i.ptaxOrigem === 'historico' ? 'histórico' : 'BCB/PTAX')}</div>` : '<span class="badge b-sell">PTAX pendente</span>';
+        const calcTxt = i.ptax > 0 ? `${fmtUSD(i.liquidoUSD || 0)} × ${this.fmtN(i.ptax,4)}` : '—';
+        return `<tr><td>${this.esc(i.dataBR || '')}</td><td><strong>${this.esc(i.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(i.creditoUSD || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(i.impostoUSD || 0)}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(i.liquidoUSD || 0)}</td><td style="font-family:var(--font-mono)">${ptaxTxt}</td><td style="font-family:var(--font-mono)">${calcTxt}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(i.valorLiquido || 0)}</td></tr>`;
+      }).join('');
+      const confereBruto = p.totalUSDBrutoPDF ? Math.abs((p.totalUSDBruto || 0) - p.totalUSDBrutoPDF) <= 0.01 : false;
+      const confereImp = p.totalUSDImpostoPDF ? Math.abs((p.totalUSDImposto || 0) - p.totalUSDImpostoPDF) <= 0.01 : false;
+      const badgeUSD = (confereBruto && confereImp) ? '<span class="badge b-buy">Totais em USD conferem com o PDF</span>' : `<span class="badge b-hold">USD a conferir: bruto PDF ${fmtUSD(p.totalUSDBrutoPDF || 0)} · imposto PDF ${fmtUSD(p.totalUSDImpostoPDF || 0)}</span>`;
+      box.innerHTML = `
+        <div class="sticky-summary" style="position:static;">
+          <div class="summary-chip"><strong>Origem:</strong> Avenue mensal</div>
+          <div class="summary-chip"><strong>Referência:</strong> ${String(p.mes).padStart(2,'0')}/${p.ano}</div>
+          <div class="summary-chip"><strong>Linhas:</strong> ${(p.linhasCredito || 0)} créditos + ${(p.linhasImposto || 0)} retenções</div>
+          <div class="summary-chip"><strong>Ativos/data:</strong> ${(p.itens || []).length}</div>
+          <div class="summary-chip"><strong>Crédito bruto:</strong> ${fmtUSD(p.totalUSDBruto || 0)}</div>
+          <div class="summary-chip"><strong>Retenção:</strong> ${fmtUSD(p.totalUSDImposto || 0)}</div>
+          <div class="summary-chip"><strong>Líquido USD:</strong> <span style="color:var(--success);font-weight:800">${fmtUSD(p.totalUSDLiquido || 0)}</span></div>
+          <div class="summary-chip"><strong>Total a lançar:</strong> <span style="color:var(--success);font-weight:800">${this.fmt(p.total || 0)}</span></div>
+          <div class="summary-chip"><strong>Campo atual:</strong> ${this.fmt(atual)} → <strong>${this.fmt(futuro)}</strong></div>
+          <div class="summary-chip">${badgeUSD}</div>
+        </div>
+        ${pend ? `<div class="warn-box"><strong>PTAX pendente:</strong> não consegui obter a PTAX exata do dia para ${this.esc((p.ptaxPendente || []).join(', '))}. Cadastre manualmente no Histórico PTAX e leia o PDF novamente. A confirmação fica bloqueada.</div>` : ''}
+        ${dup ? `<div class="warn-box"><strong>Atenção:</strong> já existe uma importação aparentemente igual no histórico. Se confirmar, o valor será somado novamente ao mês.</div>` : ''}
+        <div class="info-box">Para Avenue, o lançamento mensal usa o <strong>líquido por ativo em USD</strong> convertido por <strong>PTAX venda exata da data de pagamento</strong>. Não há fallback automático para dia útil anterior: sem PTAX daquela data, o lançamento é bloqueado para evitar conversão errada.</div>
+        <div class="grid-2" style="margin-bottom:0;">
+          <div><div class="mini-note" style="margin-bottom:8px;">Total por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Crédito USD</th><th>Retenção USD</th><th>Líquido USD</th><th>PTAX usada</th><th>Líquido R$</th><th>Eventos</th></tr></thead><tbody>${linhas || '<tr><td colspan="7">Sem dividendos.</td></tr>'}</tbody></table></div></div>
+          <div><div class="mini-note" style="margin-bottom:8px;">Eventos reconhecidos e cálculo</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Crédito</th><th>Retenção</th><th>Líquido USD</th><th>PTAX</th><th>Cálculo</th><th>Líquido R$</th></tr></thead><tbody>${itensHtml || '<tr><td colspan="8">Sem eventos.</td></tr>'}</tbody></table></div></div>
+        </div>`;
+    };
+
+    const oldPreview = A.v78RenderPreviewRendaPDF?.bind(A);
+    A.v78RenderPreviewRendaPDF = function(){
+      const p = this.s.pendingRendaPDF;
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(p && !p.erro && p.modelo === 'AVENUE_MENSAL'){
+        const hist = this.v78EnsureRendaPDFState?.() || [];
+        const dup = hist.find(h => h.hash && h.hash === p.hash);
+        const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+        const futuro = atual + (p.total || 0);
+        return this.v80RenderPreviewAvenue(p, atual, futuro, dup);
+      }
+      const ret = oldPreview ? oldPreview(...arguments) : undefined;
+      if(btn && p && p.ptaxPendente && p.ptaxPendente.length) btn.disabled = true;
+      return ret;
+    };
+
+    const oldInserir = A.v78InserirCardRendaPDF?.bind(A);
+    A.v78InserirCardRendaPDF = function(){
+      const ret = oldInserir ? oldInserir(...arguments) : undefined;
+      const card = document.getElementById('rendaPdfImportCard');
+      if(card){
+        const info = card.querySelector('.info-box');
+        if(info && !info.__v80Text){
+          info.innerHTML = 'Lê extratos mensais da <strong>B3</strong> e da <strong>Avenue</strong>. Na Avenue, separa crédito e retenção em USD, converte o líquido pela PTAX exata da data e só soma depois da sua confirmação. A coluna de renda fixa não é alterada.';
+          info.__v80Text = true;
+        }
+      }
+      return ret;
+    };
+
+    A.v80RenderRendaPDFPanel = function(){
+      this.v78EnsureRendaPDFState?.();
+      this.v78InserirCardRendaPDF?.();
+      this.v78RenderPreviewRendaPDF?.();
+      const topBody = document.getElementById('rendaPdfTopBody');
+      const histBody = document.getElementById('rendaPdfHistBody');
+      const hist = [...(this.s.rendaImportadaPDF || [])].sort((a,b)=>(b.confirmadoEm || '').localeCompare(a.confirmadoEm || ''));
+      if(histBody){
+        histBody.innerHTML = hist.slice(0,10).map(h => {
+          const origem = h.modelo === 'B3_MENSAL' ? 'B3' : (h.modelo === 'AVENUE_MENSAL' ? 'Avenue' : h.modelo || '—');
+          const usd = h.modelo === 'AVENUE_MENSAL' ? `<div class="mini-note">líq. ${fmtUSD(h.totalUSDLiquido || 0)} · créd. ${fmtUSD(h.totalUSDBruto || 0)} · ret. ${fmtUSD(h.totalUSDImposto || 0)}</div>` : '';
+          return `<tr><td><strong>${String(h.mes).padStart(2,'0')}/${h.ano}</strong></td><td>${this.esc(origem)}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(h.total || 0)}${usd}</td><td class="mini-note" title="${this.esc(h.arquivo || '')}">${this.esc(h.arquivo || '').slice(0,34)}</td></tr>`;
+        }).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Nenhuma importação confirmada.</p></div></td></tr>`;
+      }
+      if(topBody){
+        const acc = {};
+        hist.filter(h => ymKey(h.ano, h.mes) >= '2026-06').forEach(h => {
+          Object.values(h.porAtivo || {}).forEach(a => {
+            const t = String(a.ticker || '').toUpperCase().trim();
+            if(!t) return;
+            acc[t] = acc[t] || { ticker:t, total:0, eventos:0, ultimo:'', usd:0 };
+            acc[t].total += this.parseNum(a.total || 0);
+            acc[t].usd += this.parseNum(a.totalUSDLiquido || 0);
+            acc[t].eventos += this.parseNum(a.eventos || (a.itens || []).length || 0);
+            const ym = ymKey(h.ano, h.mes);
+            if(ym > acc[t].ultimo) acc[t].ultimo = ym;
+          });
+        });
+        const linhas = Object.values(acc).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
+        topBody.innerHTML = linhas.map(a => `<tr><td><strong>${this.esc(a.ticker)}</strong></td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}${a.usd ? `<div class="mini-note">${fmtUSD(a.usd)}</div>` : ''}</td><td>${a.eventos || 0}</td><td>${a.ultimo ? a.ultimo.split('-').reverse().join('/') : '—'}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Começa a contar a partir de jun/2026.</p></div></td></tr>`;
+      }
+    };
+    A.v78RenderRendaPDFPanel = A.v80RenderRendaPDFPanel;
+
+    const oldConfirmar = A.confirmarRendaPDFPreview?.bind(A);
+    A.confirmarRendaPDFPreview = function(){
+      const p = this.s.pendingRendaPDF;
+      if(p && p.modelo === 'AVENUE_MENSAL' && (p.ptaxPendente || []).length){
+        this.toast('Há PTAX pendente. Cadastre a PTAX exata da data antes de confirmar.', 'warning', 5000);
+        return;
+      }
+      return oldConfirmar ? oldConfirmar(...arguments) : undefined;
+    };
+
+    const oldRenderPTAX = A.renderizarPTAXHistorico?.bind(A);
+    A.renderizarPTAXHistorico = function(){
+      const body = document.getElementById('ptaxHistoricoBody');
+      const table = body?.closest('table');
+      if(!body || !table) return oldRenderPTAX ? oldRenderPTAX(...arguments) : undefined;
+      const head = table.querySelector('thead tr');
+      if(head) head.innerHTML = '<th>Data</th><th>PTAX</th><th>Origem / backup</th><th>Atualizado</th><th>Ações</th>';
+      const rows = Object.entries(this.s.ptaxHistorico || {}).sort((a,b)=>b[0].localeCompare(a[0]));
+      body.innerHTML = rows.map(([data, valor]) => {
+        const meta = (this.s.ptaxHistoricoMeta || {})[data] || {};
+        const origem = meta.fonte || meta.origem || 'histórico antigo';
+        const uso = meta.ultimoUso ? `<div class="mini-note">uso: ${this.esc(meta.ultimoUso)}</div>` : '';
+        const upd = meta.atualizadoEm ? new Date(meta.atualizadoEm).toLocaleString('pt-BR') : '—';
+        return `<tr><td>${isoToBR(data)}</td><td style="font-family:var(--font-mono)">${this.fmtN(valor,4)}</td><td>${this.esc(origem)}${uso}</td><td class="mini-note">${upd}</td><td><button class="btn btn-danger btn-xs" onclick="app.excluirPTAX('${data}')"><i class="ph ph-trash"></i></button></td></tr>`;
+      }).join('') || `<tr><td colspan="5"><div class="empty-state" style="padding:24px"><i class="ph ph-currency-dollar"></i><p>Nenhuma PTAX cadastrada.</p></div></td></tr>`;
+    };
+
+    const oldExcluir = A.excluirPTAX?.bind(A);
+    A.excluirPTAX = function(data){
+      const d = this.normData ? this.normData(data || '') : String(data || '').slice(0,10);
+      const ret = oldExcluir ? oldExcluir(data) : undefined;
+      if(d && this.s.ptaxHistoricoMeta){
+        delete this.s.ptaxHistoricoMeta[d];
+        this.saveJSON?.('wOS_ptaxHistoricoMeta', this.s.ptaxHistoricoMeta || {});
+      }
+      return ret;
+    };
+
+    const oldSalvarTudo = A.salvarTudoLocal?.bind(A);
+    A.salvarTudoLocal = function(){
+      const ret = oldSalvarTudo ? oldSalvarTudo(...arguments) : undefined;
+      this.saveJSON?.('wOS_ptaxHistoricoMeta', this.s.ptaxHistoricoMeta || {});
+      return ret;
+    };
+
+    const oldMontarBackup = A.montarBackupPayload?.bind(A);
+    if(oldMontarBackup){
+      A.montarBackupPayload = function(origem='manual'){
+        const p = oldMontarBackup(origem);
+        p.ptaxHistorico = this.s.ptaxHistorico || {};
+        p.ptaxHistoricoMeta = this.s.ptaxHistoricoMeta || {};
+        return p;
+      };
+    }
+
+    const oldExtrairBackup = A.extrairBackupCompat?.bind(A);
+    if(oldExtrairBackup){
+      A.extrairBackupCompat = function(d){
+        const b = oldExtrairBackup(d);
+        const root = this.parsePossivelJSON ? (this.parsePossivelJSON(d, d) || {}) : (d || {});
+        const meta = this.parsePossivelJSON ? this.parsePossivelJSON(root.ptaxHistoricoMeta || root.wOS_ptaxHistoricoMeta || root['wOS_ptaxHistoricoMeta'], undefined) : (root.ptaxHistoricoMeta || root.wOS_ptaxHistoricoMeta);
+        if(meta) b.ptaxHistoricoMeta = meta;
+        return b;
+      };
+    }
+
+    try{ A.v78RenderRendaPDFPanel?.(); }catch(e){ console.warn('v80 renda pdf avenue fix init', e); }
+    [350, 900, 1800].forEach(ms => setTimeout(() => { try{ const app = getApp(); app?.v78RenderRendaPDFPanel?.(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV80, 980));
+  installV80();
+  window.addEventListener('load', () => setTimeout(installV80, 1000));
+})();
+
+</script>
+<script id="v81-ptax-backup-restore-js">
+
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV81(){
+    const A = getApp();
+    if(!A || A.__v81PTAXBackupRestoreInstalled) return;
+    A.__v81PTAXBackupRestoreInstalled = true;
+    A.VERSAO_SISTEMA = 'v81_renda_pdf_b3_avenue_ptax_backup';
+
+    A.exportarSomenteConfigV73 = function(){
+      const payload = {
+        versao:this.VERSAO_SISTEMA,
+        exportedAt:new Date().toISOString(),
+        config:this.s.config,
+        metasMacro:this.s.metasMacro,
+        metasAtivos:this.s.metasAtivos,
+        forcarClasse:this.s.forcarClasse,
+        metaAtivosInfo:this.s.metaAtivosInfo,
+        etfHoldings:this.s.etfHoldings,
+        ptaxHistorico:this.s.ptaxHistorico || {},
+        ptaxHistoricoMeta:this.s.ptaxHistoricoMeta || {}
+      };
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `config_patrimonio_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      this.toast?.('Configurações e histórico PTAX exportados.', 'success');
+    };
+
+    A.restaurarBackup = function(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const d = JSON.parse(e.target.result);
+          const b = this.extrairBackupCompat(d);
+          if (!b.banco || !Array.isArray(b.banco) || !b.banco.length) {
+            throw new Error('Arquivo sem operações reconhecíveis. Aceito backup completo, dump de localStorage ou array de operações.');
+          }
+          if (!confirm(`Restaurar ${b.banco.length} operações${b.exportedAt ? ' de ' + b.exportedAt : ''}? Dados atuais serão sobrescritos.`)) return;
+
+          this.s.banco = b.banco;
+          if (b.config) this.s.config = { ...this.s.config, ...b.config };
+          if (b.metasMacro) this.s.metasMacro = b.metasMacro;
+          if (b.metasAtivos) this.s.metasAtivos = b.metasAtivos;
+          if (b.metaAtivosInfo) this.s.metaAtivosInfo = b.metaAtivosInfo;
+          if (b.etfHoldings) this.s.etfHoldings = b.etfHoldings;
+          if (b.etfHoldingsUpdatedAt) this.s.etfHoldingsUpdatedAt = b.etfHoldingsUpdatedAt;
+          if (b.ativosPlanejados) this.s.ativosPlanejados = Array.isArray(b.ativosPlanejados) ? b.ativosPlanejados : [];
+          if (b.forcarClasse) this.s.forcarClasse = b.forcarClasse;
+          if (b.outrosAtivos) this.s.outrosAtivos = Array.isArray(b.outrosAtivos) ? b.outrosAtivos : [];
+          if (b.rendaManual) this.s.rendaManual = b.rendaManual;
+          if (b.ptaxHistorico) this.s.ptaxHistorico = b.ptaxHistorico;
+          if (b.ptaxHistoricoMeta) this.s.ptaxHistoricoMeta = b.ptaxHistoricoMeta;
+          if (b.irChecklist) this.s.irChecklist = b.irChecklist;
+          if (b.irGrupoState) this.s.irGrupoState = b.irGrupoState;
+          if (b.notas != null) this.s.notas = String(b.notas || '');
+          if (b.themePref) this.s.themePref = b.themePref;
+          if (b.snapshots && b.snapshots.length) this.s.snapshots = b.snapshots;
+          if (b.lastReprocess) this.s.lastReprocess = b.lastReprocess;
+          if (b.historicoAjustes) this.s.historicoAjustes = b.historicoAjustes;
+          if (b.auditIgnored) this.s.auditIgnored = b.auditIgnored;
+
+          this.migrarEstruturas();
+          this.salvarTudoLocal();
+          this.saveJSON?.('wOS_ptaxHistorico', this.s.ptaxHistorico || {});
+          this.saveJSON?.('wOS_ptaxHistoricoMeta', this.s.ptaxHistoricoMeta || {});
+          this.s.dolarAtual = this.s.config.dolarManual || 5.75;
+          if (this.s.themePref) localStorage.setItem('wOS_theme', this.s.themePref);
+          localStorage.setItem('wOS_notas', this.s.notas || '');
+
+          const brapi = document.getElementById('inputBrapi'); if (brapi) brapi.value = this.s.config.brapiToken || '';
+          const dolar = document.getElementById('inputDolar'); if (dolar) dolar.value = this.s.dolarAtual;
+          this.aplicarTemaInicial();
+          this.renderConfigMetasMacro();
+          const notesInput = document.getElementById('notesInput'); if (notesInput) notesInput.value = this.s.notas || '';
+          this.renderizarOutrosAtivos();
+          this.atualizarTudo();
+          this.renderizarSnapshots();
+          this.renderizarPTAXHistorico?.();
+          this.toast('Backup restaurado com sucesso, incluindo histórico PTAX.', 'success');
+          evt.target.value = '';
+        } catch(err) {
+          console.error(err);
+          this.toast('Erro ao restaurar: ' + err.message, 'error');
+          evt.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    try{ A.v78RenderRendaPDFPanel?.(); }catch(e){}
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV81, 1100));
+  installV81();
+  window.addEventListener('load', () => setTimeout(installV81, 1120));
+})();
+
+</script>
+
+<!-- v83: suporte a proventos Nomad mensal, inserido no fim real do body para preservar a tela inicial -->
+<script id="v83-renda-pdf-nomad-js">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV82(){
+    const A = getApp();
+    if(!A || A.__v82RendaPDFNomadInstalled) return;
+    A.__v82RendaPDFNomadInstalled = true;
+    A.VERSAO_SISTEMA = 'v82_renda_pdf_b3_avenue_nomad_ptax_backup';
+
+    const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u00ad\ufffe]/g, '').replace(/\s+/g, ' ').trim();
+    const fmtUSD = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const parseUSD = v => {
+      let s = String(v || '').trim().replace(/[^\d.,\-]/g, '');
+      if(!s) return 0;
+      if(s.includes('.') && s.includes(',')) s = s.replace(/,/g, '');
+      else if(s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      return parseFloat(s) || 0;
+    };
+    const round2 = v => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100;
+    const ymKey = (ano, mes) => `${Number(ano)}-${String(Number(mes)).padStart(2,'0')}`;
+    const isoToBR = iso => {
+      const m = String(iso || '').match(/^(20\d{2})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || '');
+    };
+    const brToIsoShort = br => {
+      const m = String(br || '').match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/);
+      if(!m) return '';
+      const y = m[3].length === 2 ? '20' + m[3] : m[3];
+      return `${y}-${m[2]}-${m[1]}`;
+    };
+    const escHtml = s => String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    const esc = function(ctx, s){ return ctx && typeof ctx.esc === 'function' ? ctx.esc(s) : escHtml(s); };
+    const isExteriorModel = modelo => modelo === 'AVENUE_MENSAL' || modelo === 'NOMAD_MENSAL';
+    const origemLabel = modelo => modelo === 'B3_MENSAL' ? 'B3' : (modelo === 'AVENUE_MENSAL' ? 'Avenue' : (modelo === 'NOMAD_MENSAL' ? 'Nomad' : (modelo || '—')));
+
+    A.v82EhExtratoNomadMensal = function(textoNormalizado, fileName=''){
+      const t = String(textoNormalizado || '').toUpperCase();
+      const fn = String(fileName || '').toUpperCase();
+      return (t.includes('NOMAD INVESTMENT SERVICES') || fn.includes('INVESTMENTS_BROKER_DEALER'))
+        && t.includes('ACCOUNT STATEMENT')
+        && (t.includes('INCOME AND EXPENSE SUMMARY') || t.includes('NON-TRADING ACTIVITY'))
+        && (t.includes('CASH_DIVIDEND') || t.includes('DIVIDENDS'));
+    };
+
+    A.v82ParseRendaNomadMensal = function(texto, fileName=''){
+      const clean = normTxt(texto);
+      let ano = 0, mes = 0;
+      const fromName = String(fileName || '').match(/monthly[_\-\s]*statement[_\-\s]*(20\d{2})[_\-\s]*(\d{2})[_\-\s]*(\d{2})/i);
+      if(fromName){ ano = parseInt(fromName[1], 10); mes = parseInt(fromName[2], 10); }
+      if(!(ano && mes)){
+        const firstDivDate = clean.match(/\b(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\b/i);
+        if(firstDivDate){ ano = parseInt(firstDivDate[1], 10); mes = parseInt(firstDivDate[2], 10); }
+      }
+      if(!(ano && mes)) throw new Error('Não consegui identificar o mês de referência do extrato Nomad.');
+
+      const totalSummary = parseUSD((clean.match(/INCOME\s+AND\s+EXPENSE\s+SUMMARY[\s\S]{0,700}?Dividends\s+([\d,]+(?:\.\d{2}))/i) || [])[1]);
+      const chunks = clean.split(/(?=\b20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b)/i).filter(x => /^20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b/i.test(x));
+      const itens = [];
+      const banned = new Set(['NON','WITH','CASH','DIV','REC','PAY','RESIDENT','ALIEN','CUSIP','FEE','USD']);
+
+      chunks.forEach(chunk => {
+        let c = normTxt(chunk).split(/\s+Page\s+\d+\s+of\s+\d+/i)[0];
+        c = c.split(/\s+20\d{2}-\d{2}-\d{2}\s+(?:SWEEP|STOCK_SPLIT|CASH_IN_LIEU|INTEREST|FEE|TRANSFER|JOURNAL|QUALIFIED_DIVIDEND|DIVIDEND)\b/i)[0];
+        const d = c.match(/^(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\s+/i);
+        if(!d) return;
+        const data = `${d[1]}-${d[2]}-${d[3]}`;
+        const dataBR = `${d[3]}/${d[2]}/${d[1]}`;
+
+        let ticker = '', cusip = '', brutoUSD = 0, tailIndex = -1;
+        let tail = c.match(/\b([A-Z.]{1,10})\s+((?=[A-Z0-9]*\d)[A-Z0-9]{9})\s+0\.00\s+(-?[\d,]+(?:\.\d{2}))\s+0\.00\b/);
+        if(tail){ ticker = tail[1]; cusip = tail[2]; brutoUSD = parseUSD(tail[3]); tailIndex = tail.index; }
+        else {
+          tail = c.match(/\b([A-Z.]{1,10})\s+0\.00\s+(-?[\d,]+(?:\.\d{2}))\s+0\.00\b[\s\S]{0,240}?\b((?=[A-Z0-9]*\d)[A-Z0-9]{9})\b/);
+          if(tail){ ticker = tail[1]; brutoUSD = parseUSD(tail[2]); cusip = tail[3]; tailIndex = tail.index; }
+        }
+        ticker = String(ticker || '').toUpperCase().trim();
+        if(!ticker || banned.has(ticker) || !(brutoUSD > 0)) return;
+
+        let nome = c.slice(d[0].length, tailIndex >= 0 ? tailIndex : c.length).trim();
+        nome = nome.replace(/\s*Cash\s+Div(?:idend)?(?:\s+of)?[\s\S]*$/i, '').replace(/\s+/g, ' ').trim() || ticker;
+        const rq = c.match(/(?:Cash\s+Div\s+of\s+)?([\d.]+)\s+on\s+([\d.]+)\s+shs/i);
+        const taxMatch = c.match(/With\s+([\d.]+)%\s+NON/i);
+        const taxPct = taxMatch ? (parseFloat(taxMatch[1]) || 0) : 0;
+        const impostoUSD = round2(brutoUSD * taxPct / 100);
+        const liquidoUSD = round2(brutoUSD - impostoUSD);
+        // A coluna de data da atividade no extrato Nomad já vem em ISO e corresponde à data de pagamento/lançamento.
+        // As datas curtas no texto descritivo seguem padrão dos EUA (MM/DD/YY), então não são usadas para evitar inversão de dia/mês.
+        const payIso = data;
+        const payBR = dataBR;
+
+        itens.push({
+          ticker, nome, cusip,
+          data: payIso, dataBR: payBR,
+          dataLancamento: data, dataLancamentoBR: dataBR,
+          evento:'Dividendo Nomad',
+          quantidade: rq ? parseUSD(rq[2]) : 0,
+          dividendoPorAcao: rq ? parseUSD(rq[1]) : 0,
+          creditoUSD: round2(brutoUSD),
+          impostoUSD,
+          liquidoUSD,
+          impostoPct: taxPct,
+          retencaoInferida: taxPct > 0,
+          valorLiquido:0,
+          precoUnitario:liquidoUSD,
+          ptax:0,
+          ptaxData:payIso,
+          linhasCredito:1,
+          linhasImposto:taxPct > 0 ? 1 : 0
+        });
+      });
+
+      if(!itens.length){
+        if(totalSummary > 0) throw new Error('O extrato Nomad tem dividendos no resumo, mas não consegui reconhecer as linhas CASH_DIVIDEND.');
+        return { modelo:'NOMAD_MENSAL', corretora:'NOMAD', arquivo:fileName, ano, mes, itens:[], porAtivo:{}, total:0, totalPDF:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, totalUSDLiquidoPDF:totalSummary || 0, aviso:'Sem dividendos no período.', ptaxPendente:[] };
+      }
+
+      itens.sort((a,b)=>(a.data || '').localeCompare(b.data || '') || (a.ticker || '').localeCompare(b.ticker || ''));
+      const totalUSDBruto = round2(itens.reduce((s,i)=>s + (i.creditoUSD || 0), 0));
+      const totalUSDImposto = round2(itens.reduce((s,i)=>s + (i.impostoUSD || 0), 0));
+      const totalUSDLiquido = round2(itens.reduce((s,i)=>s + (i.liquidoUSD || 0), 0));
+      const linhasCredito = itens.reduce((s,i)=>s + (i.linhasCredito || 0), 0);
+      const linhasImposto = itens.reduce((s,i)=>s + (i.linhasImposto || 0), 0);
+
+      const porAtivo = {};
+      itens.forEach(i => {
+        porAtivo[i.ticker] = porAtivo[i.ticker] || { ticker:i.ticker, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, linhasCredito:0, linhasImposto:0, ptaxDatas:[], itens:[] };
+        porAtivo[i.ticker].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[i.ticker].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[i.ticker].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[i.ticker].eventos += 1;
+        porAtivo[i.ticker].linhasCredito += i.linhasCredito || 0;
+        porAtivo[i.ticker].linhasImposto += i.linhasImposto || 0;
+        porAtivo[i.ticker].itens.push(i);
+      });
+      Object.values(porAtivo).forEach(a => { a.totalUSDLiquido = round2(a.totalUSDLiquido); a.totalUSDBruto = round2(a.totalUSDBruto); a.totalUSDImposto = round2(a.totalUSDImposto); });
+
+      const payload = {
+        modelo:'NOMAD_MENSAL', corretora:'NOMAD', arquivo:fileName, ano, mes, itens, porAtivo,
+        total:0,
+        totalPDF:0,
+        totalUSDLiquido, totalUSDBruto, totalUSDImposto,
+        totalUSDLiquidoPDF: totalSummary || 0,
+        totalUSDBrutoPDF: 0,
+        totalUSDImpostoPDF: 0,
+        divergenciaUSDLiquido: totalSummary ? round2(totalUSDLiquido - totalSummary) : 0,
+        linhasCredito, linhasImposto,
+        ptaxPendente:[...new Set(itens.map(i=>i.data).filter(Boolean))]
+      };
+      payload.hash = `NOMAD|${ano}-${String(mes).padStart(2,'0')}|${payload.totalUSDBruto.toFixed(2)}|${payload.totalUSDImposto.toFixed(2)}|${payload.totalUSDLiquido.toFixed(2)}|` + itens.map(i=>`${i.data}:${i.ticker}:${i.creditoUSD.toFixed(2)}:${i.impostoUSD.toFixed(2)}`).join('|');
+      return payload;
+    };
+
+    A.v82BuscarPTAXBCBExata = async function(dataIso, uso='proventos exterior'){
+      const original = this.normData ? this.normData(dataIso || '') : String(dataIso || '').slice(0,10);
+      if(!original) return { valor:0, dataCotacao:'', origem:'' };
+      const manual = this.getPTAXParaData ? this.getPTAXParaData(original) : 0;
+      if(manual > 0) return { valor:manual, dataCotacao:original, origem:'historico' };
+      const v = this.buscarPTAXBCB ? await this.buscarPTAXBCB(original) : 0;
+      if(v > 0){
+        this.setPTAXParaData?.(original, v, 'bcb_pdf_renda', { fonte:'Banco Central/PTAX venda', dataCotacao:original, uso });
+        return { valor:v, dataCotacao:original, origem:'bcb_pdf_renda' };
+      }
+      return { valor:0, dataCotacao:original, origem:'pendente' };
+    };
+
+    A.v82PreencherPTAXNomad = async function(p){
+      if(!p || p.modelo !== 'NOMAD_MENSAL') return p;
+      const datas = [...new Set((p.itens || []).map(i => i.data).filter(Boolean))];
+      for(const data of datas){
+        const info = await this.v82BuscarPTAXBCBExata(data, 'proventos Nomad');
+        (p.itens || []).filter(i => i.data === data).forEach(i => {
+          i.ptax = info.valor || 0;
+          i.ptaxData = data;
+          i.ptaxOrigem = info.origem || '';
+          i.valorLiquido = i.ptax > 0 ? round2((i.liquidoUSD || 0) * i.ptax) : 0;
+          i.precoUnitario = i.valorLiquido;
+          i.formulaBRL = i.ptax > 0 ? `${fmtUSD(i.liquidoUSD || 0)} × ${Number(i.ptax).toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4})} = ${this.fmt ? this.fmt(i.valorLiquido || 0) : i.valorLiquido}` : 'PTAX pendente';
+        });
+      }
+      p.ptaxPendente = [...new Set((p.itens || []).filter(i => !(i.ptax > 0)).map(i => i.dataBR || i.data))];
+      p.total = round2((p.itens || []).reduce((s,i)=>s + (i.valorLiquido || 0), 0));
+      p.totalPDF = p.total;
+      const porAtivo = {};
+      (p.itens || []).forEach(i => {
+        const t = String(i.ticker || '').toUpperCase().trim();
+        if(!t) return;
+        porAtivo[t] = porAtivo[t] || { ticker:t, total:0, totalUSDLiquido:0, totalUSDBruto:0, totalUSDImposto:0, eventos:0, linhasCredito:0, linhasImposto:0, ptaxDatas:[], itens:[] };
+        porAtivo[t].total += i.valorLiquido || 0;
+        porAtivo[t].totalUSDLiquido += i.liquidoUSD || 0;
+        porAtivo[t].totalUSDBruto += i.creditoUSD || 0;
+        porAtivo[t].totalUSDImposto += i.impostoUSD || 0;
+        porAtivo[t].eventos += 1;
+        porAtivo[t].linhasCredito += i.linhasCredito || 0;
+        porAtivo[t].linhasImposto += i.linhasImposto || 0;
+        const ptaxLabel = i.ptax > 0 ? `${i.dataBR}: ${Number(i.ptax).toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4})}` : `${i.dataBR}: pendente`;
+        if(!porAtivo[t].ptaxDatas.includes(ptaxLabel)) porAtivo[t].ptaxDatas.push(ptaxLabel);
+        porAtivo[t].itens.push(i);
+      });
+      Object.values(porAtivo).forEach(a => {
+        a.total = round2(a.total); a.totalUSDLiquido = round2(a.totalUSDLiquido); a.totalUSDBruto = round2(a.totalUSDBruto); a.totalUSDImposto = round2(a.totalUSDImposto);
+      });
+      p.porAtivo = porAtivo;
+      return p;
+    };
+
+    const oldDetect = A.v78DetectarModeloRendaPDF?.bind(A);
+    A.v78DetectarModeloRendaPDF = function(texto, fileName=''){
+      const t = normTxt(texto).toUpperCase();
+      if(this.v82EhExtratoNomadMensal?.(t, fileName)) return 'NOMAD_MENSAL';
+      return oldDetect ? oldDetect(texto, fileName) : 'DESCONHECIDO';
+    };
+
+    const oldParser = A.v78ParserRendaPDF?.bind(A);
+    A.v78ParserRendaPDF = function(texto, fileName=''){
+      const modelo = this.v78DetectarModeloRendaPDF(texto, fileName);
+      if(modelo === 'NOMAD_MENSAL') return this.v82ParseRendaNomadMensal(texto, fileName);
+      return oldParser ? oldParser(texto, fileName) : (()=>{ throw new Error('Modelo de relatório não reconhecido para importação de proventos.'); })();
+    };
+
+    A.v82RenderPreviewNomad = function(p, atual, futuro, dup){
+      const box = document.getElementById('rendaPdfPreview') || document.getElementById('rendaPdfPreviewBox');
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(!box) return;
+      const pend = (p.ptaxPendente || []).length;
+      if(btn) btn.disabled = !!pend;
+      const porAtivo = Object.values(p.porAtivo || {}).sort((a,b)=>(b.total || 0)-(a.total || 0));
+      const linhas = porAtivo.map(a => {
+        const ptaxInfo = (a.ptaxDatas || []).join(' · ') || '—';
+        return `<tr><td><strong>${esc(this, a.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDBruto || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(a.totalUSDImposto || 0)}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(a.totalUSDLiquido || 0)}</td><td class="mini-note">${esc(this, ptaxInfo)}</td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}</td><td>${a.eventos || 0}</td></tr>`;
+      }).join('');
+      const itensHtml = (p.itens || []).map(i => {
+        const ptaxTxt = i.ptax > 0 ? `${this.fmtN(i.ptax,4)}<div class="mini-note">${esc(this, i.ptaxOrigem === 'historico' ? 'histórico' : 'BCB/PTAX')}</div>` : '<span class="badge b-sell">PTAX pendente</span>';
+        const calcTxt = i.ptax > 0 ? `${fmtUSD(i.liquidoUSD || 0)} × ${this.fmtN(i.ptax,4)}` : '—';
+        const ret = i.retencaoInferida ? `<div class="mini-note">${this.fmtN(i.impostoPct || 0,2)}% inferido</div>` : '';
+        return `<tr><td>${esc(this, i.dataBR || '')}</td><td><strong>${esc(this, i.ticker)}</strong></td><td style="font-family:var(--font-mono)">${fmtUSD(i.creditoUSD || 0)}</td><td style="font-family:var(--font-mono)">${fmtUSD(i.impostoUSD || 0)}${ret}</td><td style="font-family:var(--font-mono);font-weight:700">${fmtUSD(i.liquidoUSD || 0)}</td><td style="font-family:var(--font-mono)">${ptaxTxt}</td><td style="font-family:var(--font-mono)">${calcTxt}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(i.valorLiquido || 0)}</td></tr>`;
+      }).join('');
+      const confereLiquido = p.totalUSDLiquidoPDF ? Math.abs((p.totalUSDLiquido || 0) - p.totalUSDLiquidoPDF) <= 0.01 : false;
+      const badgeUSD = p.totalUSDLiquidoPDF ? (confereLiquido ? '<span class="badge b-buy">Líquido USD confere com o PDF</span>' : `<span class="badge b-hold">USD a conferir: líquido PDF ${fmtUSD(p.totalUSDLiquidoPDF || 0)}</span>`) : '<span class="badge b-hold">Resumo USD não localizado</span>';
+      box.innerHTML = `
+        <div class="sticky-summary" style="position:static;">
+          <div class="summary-chip"><strong>Origem:</strong> Nomad mensal</div>
+          <div class="summary-chip"><strong>Referência:</strong> ${String(p.mes).padStart(2,'0')}/${p.ano}</div>
+          <div class="summary-chip"><strong>Linhas:</strong> ${(p.linhasCredito || 0)} créditos + ${(p.linhasImposto || 0)} retenções inferidas</div>
+          <div class="summary-chip"><strong>Ativos/data:</strong> ${(p.itens || []).length}</div>
+          <div class="summary-chip"><strong>Crédito bruto:</strong> ${fmtUSD(p.totalUSDBruto || 0)}</div>
+          <div class="summary-chip"><strong>Retenção:</strong> ${fmtUSD(p.totalUSDImposto || 0)}</div>
+          <div class="summary-chip"><strong>Líquido USD:</strong> <span style="color:var(--success);font-weight:800">${fmtUSD(p.totalUSDLiquido || 0)}</span></div>
+          <div class="summary-chip"><strong>Total a lançar:</strong> <span style="color:var(--success);font-weight:800">${this.fmt(p.total || 0)}</span></div>
+          <div class="summary-chip"><strong>Campo atual:</strong> ${this.fmt(atual)} → <strong>${this.fmt(futuro)}</strong></div>
+          <div class="summary-chip">${badgeUSD}</div>
+        </div>
+        ${pend ? `<div class="warn-box"><strong>PTAX pendente:</strong> não consegui obter a PTAX exata do dia para ${esc(this, (p.ptaxPendente || []).join(', '))}. Cadastre manualmente no Histórico PTAX e leia o PDF novamente. A confirmação fica bloqueada.</div>` : ''}
+        ${dup ? `<div class="warn-box"><strong>Atenção:</strong> já existe uma importação aparentemente igual no histórico. Se confirmar, o valor será somado novamente ao mês.</div>` : ''}
+        <div class="info-box">Para Nomad, o campo <strong>Amount($)</strong> das linhas CASH_DIVIDEND é tratado como crédito bruto. Quando a descrição informa <strong>With 30% NON Resident Alien Withholding</strong>, a retenção é calculada linha a linha, e o líquido em USD é conferido com o resumo <strong>Income and Expense Summary &gt; Dividends</strong>. A conversão usa a <strong>PTAX venda exata da data de pagamento</strong>.</div>
+        <div class="grid-2" style="margin-bottom:0;">
+          <div><div class="mini-note" style="margin-bottom:8px;">Total por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Crédito USD</th><th>Retenção USD</th><th>Líquido USD</th><th>PTAX usada</th><th>Líquido R$</th><th>Eventos</th></tr></thead><tbody>${linhas || '<tr><td colspan="7">Sem dividendos.</td></tr>'}</tbody></table></div></div>
+          <div><div class="mini-note" style="margin-bottom:8px;">Eventos reconhecidos e cálculo</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Crédito</th><th>Retenção</th><th>Líquido USD</th><th>PTAX</th><th>Cálculo</th><th>Líquido R$</th></tr></thead><tbody>${itensHtml || '<tr><td colspan="8">Sem eventos.</td></tr>'}</tbody></table></div></div>
+        </div>`;
+    };
+
+    const oldPreview = A.v78RenderPreviewRendaPDF?.bind(A);
+    A.v78RenderPreviewRendaPDF = function(){
+      const p = this.s.pendingRendaPDF;
+      const btn = document.getElementById('btnConfirmarRendaPDF');
+      if(p && !p.erro && p.modelo === 'NOMAD_MENSAL'){
+        const hist = this.v78EnsureRendaPDFState?.() || [];
+        const dup = hist.find(h => h.hash && h.hash === p.hash);
+        const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+        const futuro = atual + (p.total || 0);
+        return this.v82RenderPreviewNomad(p, atual, futuro, dup);
+      }
+      const ret = oldPreview ? oldPreview(...arguments) : undefined;
+      if(btn && p && p.ptaxPendente && p.ptaxPendente.length) btn.disabled = true;
+      return ret;
+    };
+
+    const oldProcessar = A.processarRendaPDF?.bind(A);
+    A.processarRendaPDF = async function(evt){
+      const file = (evt?.target?.files || [])[0];
+      if(!file) return;
+      this.v78EnsureRendaPDFState?.();
+      this.s.pendingRendaPDF = null;
+      this.v78RenderPreviewRendaPDF?.();
+      this.toast('Lendo extrato de proventos...', 'info', 2500);
+      try{
+        const texto = await this.extrairTextoPDF(file);
+        let parsed = this.v78ParserRendaPDF(texto, file.name);
+        parsed.arquivo = file.name;
+        if(parsed.modelo === 'AVENUE_MENSAL') parsed = await (this.v80PreencherPTAXRendaPDF || this.v79PreencherPTAXRendaPDF).call(this, parsed);
+        if(parsed.modelo === 'NOMAD_MENSAL') parsed = await this.v82PreencherPTAXNomad(parsed);
+        parsed.confirmado = false;
+        parsed.hash = parsed.hash || (this.v78HashRendaPDF ? this.v78HashRendaPDF(parsed) : String(Date.now()));
+        this.s.pendingRendaPDF = parsed;
+        this.v78RenderRendaPDFPanel?.();
+        const msg = isExteriorModel(parsed.modelo)
+          ? `Extrato lido: ${fmtUSD(parsed.totalUSDLiquido || 0)} líquidos (${this.fmt(parsed.total || 0)} convertidos). Confira antes de somar.`
+          : `Extrato lido: ${this.fmt(parsed.total || 0)} em proventos. Confira antes de somar.`;
+        this.toast(msg, 'success');
+      } catch(e){
+        if(oldProcessar && !String(e.message || '').includes('Nomad')) console.warn('v82 processar renda pdf fallback indisponível após erro:', e);
+        this.s.pendingRendaPDF = { erro: e.message || 'Erro ao processar PDF', arquivo:file.name };
+        this.v78RenderRendaPDFPanel?.();
+        this.toast(e.message || 'Erro ao processar PDF.', 'error', 6000);
+      } finally {
+        if(evt?.target) evt.target.value = '';
+      }
+    };
+
+    const oldConfirmar = A.confirmarRendaPDFPreview?.bind(A);
+    A.confirmarRendaPDFPreview = function(){
+      const p = this.s.pendingRendaPDF;
+      if(!p || p.erro) return oldConfirmar ? oldConfirmar(...arguments) : undefined;
+      if(p.modelo !== 'NOMAD_MENSAL') return oldConfirmar ? oldConfirmar(...arguments) : undefined;
+      if((p.ptaxPendente || []).length){ this.toast('Há PTAX pendente. Cadastre a PTAX exata da data antes de confirmar.', 'warning', 5000); return; }
+      const total = this.parseNum(p.total || 0);
+      const atual = this.parseNum(this.getRendaManualMes(p.ano, p.mes).dividendos || 0);
+      const extraUSD = `\nLíquido USD: ${fmtUSD(p.totalUSDLiquido || 0)}\nCrédito bruto: ${fmtUSD(p.totalUSDBruto || 0)} | Retenção: ${fmtUSD(p.totalUSDImposto || 0)}\n`;
+      const msg = `Somar ${this.fmt(total)} aos dividendos de ${String(p.mes).padStart(2,'0')}/${p.ano}?${extraUSD}\nValor atual: ${this.fmt(atual)}\nNovo valor: ${this.fmt(atual + total)}\n\nA coluna de renda fixa não será alterada.`;
+      if(!confirm(msg)) return;
+      const key = this.rendaKey(p.ano, p.mes);
+      const item = this.s.rendaManual[key] || { dividendos:0, rendaFixa:0 };
+      item.dividendos = this.parseNum(item.dividendos || 0) + total;
+      item.rendaFixa = this.parseNum(item.rendaFixa || 0);
+      this.s.rendaManual[key] = item;
+      this.s.rendaImportadaPDF = this.v78EnsureRendaPDFState?.() || [];
+      const histItem = {
+        id: this.idGen ? this.idGen() : String(Date.now()),
+        hash: p.hash || (this.v78HashRendaPDF ? this.v78HashRendaPDF(p) : String(Date.now())),
+        modelo: p.modelo,
+        corretora: 'NOMAD',
+        arquivo: p.arquivo || '',
+        ano: p.ano,
+        mes: p.mes,
+        total,
+        totalPDF: p.totalPDF || 0,
+        divergencia: p.divergencia || 0,
+        totalUSDLiquido: p.totalUSDLiquido || 0,
+        totalUSDBruto: p.totalUSDBruto || 0,
+        totalUSDImposto: p.totalUSDImposto || 0,
+        totalUSDLiquidoPDF: p.totalUSDLiquidoPDF || 0,
+        totalUSDBrutoPDF: p.totalUSDBrutoPDF || 0,
+        totalUSDImpostoPDF: p.totalUSDImpostoPDF || 0,
+        eventos: (p.itens || []).length,
+        porAtivo: p.porAtivo || {},
+        itens: p.itens || [],
+        confirmadoEm: new Date().toISOString()
+      };
+      this.s.rendaImportadaPDF.push(histItem);
+      localStorage.setItem('wOS_rendaManual', JSON.stringify(this.s.rendaManual));
+      this.v78SalvarRendaPDF?.();
+      this.s.pendingRendaPDF = null;
+      this.renderizarRenda?.();
+      this.renderizarDashboard?.();
+      this.v78RenderRendaPDFPanel?.();
+      this.toast(`Proventos Nomad somados em ${String(p.mes).padStart(2,'0')}/${p.ano}: ${this.fmt(total)}.`, 'success');
+    };
+
+    const oldInserir = A.v78InserirCardRendaPDF?.bind(A);
+    A.v78InserirCardRendaPDF = function(){
+      const ret = oldInserir ? oldInserir(...arguments) : undefined;
+      const card = document.getElementById('rendaPdfImportCard');
+      if(card){
+        const info = card.querySelector('.info-box');
+        if(info && !info.__v82Text){
+          info.innerHTML = 'Lê extratos mensais da <strong>B3</strong>, da <strong>Avenue</strong> e da <strong>Nomad</strong>. No exterior, separa crédito e retenção em USD, converte o líquido pela PTAX exata da data e só soma depois da sua confirmação. A coluna de renda fixa não é alterada.';
+          info.__v82Text = true;
+        }
+      }
+      return ret;
+    };
+
+    A.v82RenderRendaPDFPanel = function(){
+      this.v78EnsureRendaPDFState?.();
+      this.v78InserirCardRendaPDF?.();
+      this.v78RenderPreviewRendaPDF?.();
+      const topBody = document.getElementById('rendaPdfTopBody');
+      const histBody = document.getElementById('rendaPdfHistBody');
+      const hist = [...(this.s.rendaImportadaPDF || [])].sort((a,b)=>(b.confirmadoEm || '').localeCompare(a.confirmadoEm || ''));
+      if(histBody){
+        histBody.innerHTML = hist.slice(0,10).map(h => {
+          const origem = origemLabel(h.modelo);
+          const usd = isExteriorModel(h.modelo) ? `<div class="mini-note">líq. ${fmtUSD(h.totalUSDLiquido || 0)} · créd. ${fmtUSD(h.totalUSDBruto || 0)} · ret. ${fmtUSD(h.totalUSDImposto || 0)}</div>` : '';
+          return `<tr><td><strong>${String(h.mes).padStart(2,'0')}/${h.ano}</strong></td><td>${esc(this, origem)}</td><td style="font-family:var(--font-mono);font-weight:700">${this.fmt(h.total || 0)}${usd}</td><td class="mini-note" title="${esc(this, h.arquivo || '')}">${esc(this, h.arquivo || '').slice(0,34)}</td></tr>`;
+        }).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Nenhuma importação confirmada.</p></div></td></tr>`;
+      }
+      if(topBody){
+        const acc = {};
+        hist.filter(h => ymKey(h.ano, h.mes) >= '2026-06').forEach(h => {
+          Object.values(h.porAtivo || {}).forEach(a => {
+            const t = String(a.ticker || '').toUpperCase().trim();
+            if(!t) return;
+            acc[t] = acc[t] || { ticker:t, total:0, eventos:0, ultimo:'', usd:0 };
+            acc[t].total += this.parseNum(a.total || 0);
+            acc[t].usd += this.parseNum(a.totalUSDLiquido || 0);
+            acc[t].eventos += this.parseNum(a.eventos || (a.itens || []).length || 0);
+            const ym = ymKey(h.ano, h.mes);
+            if(ym > acc[t].ultimo) acc[t].ultimo = ym;
+          });
+        });
+        const linhas = Object.values(acc).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
+        topBody.innerHTML = linhas.map(a => `<tr><td><strong>${esc(this, a.ticker)}</strong></td><td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${this.fmt(a.total || 0)}${a.usd ? `<div class="mini-note">${fmtUSD(a.usd)}</div>` : ''}</td><td>${a.eventos || 0}</td><td>${a.ultimo ? a.ultimo.split('-').reverse().join('/') : '—'}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty-state" style="padding:18px"><p>Começa a contar a partir de jun/2026.</p></div></td></tr>`;
+      }
+    };
+    A.v78RenderRendaPDFPanel = A.v82RenderRendaPDFPanel;
+
+    try{ A.v78RenderRendaPDFPanel?.(); }catch(e){ console.warn('v82 renda pdf nomad init', e); }
+    [350, 900, 1800].forEach(ms => setTimeout(() => { try{ const app = getApp(); app?.v78RenderRendaPDFPanel?.(); }catch(e){} }, ms));
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV82, 1200));
+  installV82();
+  window.addEventListener('load', () => setTimeout(installV82, 1220));
+})();
+</script>
+
+<style id="v84-import-preview-editor-css">
+/* ── V84: prévia de importação maior, redimensionável e editável ── */
+#modalImportPreview .modal{
+  width:min(1320px,96vw)!important;
+  max-width:96vw!important;
+  max-height:94vh!important;
+  resize:both;
+  overflow:auto;
+}
+#modalImportPreview .table-wrap{
+  max-height:68vh!important;
+  min-height:360px;
+  resize:vertical;
+  overflow:auto!important;
+}
+#modalImportPreview table{ min-width:1180px; }
+#modalImportPreview th,#modalImportPreview td{ padding:9px 10px; vertical-align:top; }
+.v84-preview-input,.v84-preview-select{
+  width:100%; min-width:86px; padding:6px 8px; border-radius:8px;
+  border:1px solid var(--border-bright); background:var(--bg-card); color:var(--text-main);
+  font-family:var(--font-body); font-size:12px; font-weight:600;
+}
+.v84-preview-input:focus,.v84-preview-select:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-glow); }
+.v84-preview-input.mono{ font-family:var(--font-mono); text-align:right; }
+.v84-ticker-box{ min-width:145px; display:flex; flex-direction:column; gap:5px; }
+.v84-original-title{ color:var(--text-muted); font-size:10.8px; line-height:1.25; max-width:220px; }
+.v84-map-actions{ display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.v84-map-chip{ display:inline-flex; align-items:center; gap:4px; padding:3px 7px; border-radius:999px; border:1px solid var(--border); background:var(--bg-card); font-size:10.5px; color:var(--text-muted); font-weight:700; }
+.v84-map-chip.ok{ color:var(--success); border-color:rgba(34,208,122,.45); background:var(--success-glow); }
+.v84-map-chip.warn{ color:var(--warning); border-color:rgba(240,180,41,.45); background:var(--warning-glow); }
+.v84-status-cell{ min-width:190px; }
+.v84-row-actions{ min-width:92px; display:flex; flex-direction:column; gap:5px; }
+.v84-preview-help{ margin-top:8px; font-size:12px; color:var(--text-muted); line-height:1.45; }
+.v84-preview-help strong{ color:var(--text-main); }
+</style>
+<script id="v84-import-preview-editor-js">
+(function(){
+  function installV84ImportPreviewEditor(){
+    const A = window.app;
+    if(!A || A.__v84ImportPreviewEditorInstalled) return;
+    A.__v84ImportPreviewEditorInstalled = true;
+    A.VERSAO_SISTEMA = 'v84_import_preview_editor';
+
+    const oldMap = A.mapaTituloB3ParaTicker?.bind(A);
+    const oldSalvarTudoLocal = A.salvarTudoLocal?.bind(A);
+    const oldMontarBackupPayload = A.montarBackupPayload?.bind(A);
+    const oldExtrairBackupCompat = A.extrairBackupCompat?.bind(A);
+    const oldMigrarEstruturas = A.migrarEstruturas?.bind(A);
+
+    A.v84NormTituloB3 = function(txt){
+      return String(txt || '').toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/&/g,' E ')
+        .replace(/[@#]/g,' ')
+        .replace(/\bFII\b/g,' ')
+        .replace(/\bCI\b|\bER\b|\bERS\b|\bED\b|\bEJ\b|\bNM\b|\bN1\b|\bON\b|\bPN\b/g,' ')
+        .replace(/[^A-Z0-9\s.\/-]/g,' ')
+        .replace(/\s+/g,' ')
+        .trim();
+    };
+
+    A.v84LoadTituloMapManual = function(){
+      if(!this.s) this.s = {};
+      if(!this.s.b3TituloMapManual || typeof this.s.b3TituloMapManual !== 'object'){
+        this.s.b3TituloMapManual = this.loadJSON ? this.loadJSON('wOS_b3TituloMapManual', {}) : JSON.parse(localStorage.getItem('wOS_b3TituloMapManual') || '{}');
+      }
+      return this.s.b3TituloMapManual || {};
+    };
+
+    A.v84SaveTituloMapManual = function(){
+      const mapa = this.v84LoadTituloMapManual();
+      if(this.saveJSON) this.saveJSON('wOS_b3TituloMapManual', mapa);
+      else localStorage.setItem('wOS_b3TituloMapManual', JSON.stringify(mapa));
+    };
+
+    A.v84TickerValido = function(ticker){
+      return /^[A-Z0-9.]{2,12}$/.test(String(ticker || '').toUpperCase().trim());
+    };
+
+    A.mapaTituloB3ParaTicker = function(nome){
+      const raw = String(nome || '');
+      const mapa = this.v84LoadTituloMapManual?.() || {};
+      const key = this.v84NormTituloB3 ? this.v84NormTituloB3(raw) : raw.toUpperCase().trim();
+      const salvo = mapa[key];
+      if(salvo){
+        const ticker = typeof salvo === 'string' ? salvo : salvo.ticker;
+        if(ticker) return String(ticker).toUpperCase().trim();
+      }
+      const directTicker = raw.toUpperCase().match(/\b[A-Z]{4,5}11\b|\b[A-Z]{4}3\b|\b[A-Z]{4}4\b/);
+      if(directTicker) return directTicker[0];
+      return oldMap ? oldMap(nome) : '';
+    };
+
+    A.v84AplicarMapaManualNaRow = function(row){
+      if(!row || row.modeloNota !== 'Itaú/B3') return row;
+      const nome = row.nomeTituloOriginal || row.tituloOriginal || '';
+      if(!nome) return row;
+      const ticker = this.mapaTituloB3ParaTicker(nome);
+      if(ticker && (!row.titulo || row.titulo !== ticker)){
+        row.titulo = ticker;
+        row.mapeadoManual = !!((this.v84LoadTituloMapManual?.() || {})[this.v84NormTituloB3(nome)]);
+      }
+      return row;
+    };
+
+    A.v84IssuesPreview = function(row){
+      this.v84AplicarMapaManualNaRow(row);
+      const issues = this.validarRegistro ? (this.validarRegistro(row) || []) : [];
+      if(row?.origemImportacao === 'PDF_NOTA' && this.normalizeLocal?.(row.local) === 'EXTERIOR' && !(this.parseNum(row.ptax) > 0)){
+        issues.push({level:'danger', msg:'PTAX do dia ausente; cadastre/busque antes de importar'});
+      }
+      if(row?.origemImportacao === 'PDF_NOTA' && row.modeloNota === 'Itaú/B3' && !String(row.titulo || '').trim()){
+        issues.push({level:'danger', msg:`Título B3 não mapeado: ${row.nomeTituloOriginal || '—'}`});
+      }
+      return issues;
+    };
+
+    A.v84ReclassificarPreview = function(entries){
+      const list = (this.v67PreviewEntries ? this.v67PreviewEntries(entries) : (entries || this.s?.pendingImportRows || []));
+      const existentes = new Set((this.s?.banco || []).map(tx => this.v67ChaveOperacao ? this.v67ChaveOperacao(tx) : JSON.stringify(tx)));
+      const vistos = new Set();
+      list.forEach(entry => {
+        const row = entry.row || entry;
+        if(row && row.__v84BloqueioDuplicidade){
+          delete row.duplicado; delete row.bloqueado; delete row.motivoDuplicidade; delete row.motivoBloqueio; delete row.__v84BloqueioDuplicidade;
+        }
+        entry.row = row;
+        entry.issues = this.v84IssuesPreview(row);
+        entry.status = entry.issues.some(i => i.level === 'danger') ? 'inválido' : (entry.issues.length ? 'alerta' : 'ok');
+      });
+      list.forEach(entry => {
+        const row = entry.row || {};
+        const ticker = String(row.titulo || row.ativoOrigem || row.tickerDestino || '').trim();
+        const k = this.v67ChaveOperacao ? this.v67ChaveOperacao(row) : JSON.stringify(row);
+        if(row.origemImportacao === 'PDF_NOTA' && ticker && entry.status !== 'inválido' && k && (existentes.has(k) || vistos.has(k))){
+          row.duplicado = true;
+          row.bloqueado = true;
+          row.__v84BloqueioDuplicidade = true;
+          row.motivoDuplicidade = 'Operação semelhante já existe na base ou na própria prévia.';
+          row.motivoBloqueio = row.motivoDuplicidade;
+          entry.issues = entry.issues || [];
+          if(!entry.issues.some(i => i.msg === row.motivoDuplicidade)) entry.issues.push({level:'danger', msg:row.motivoDuplicidade});
+          entry.status = 'inválido';
+        }
+        if(ticker) vistos.add(k);
+      });
+      if(this.v67SyncPreviewState) return this.v67SyncPreviewState(list);
+      this.s.pendingImportRows = list;
+      return list;
+    };
+
+    A.v84EnsurePreviewDatalists = function(){
+      let dl = document.getElementById('v84TickerList');
+      if(!dl){ dl = document.createElement('datalist'); dl.id = 'v84TickerList'; document.body.appendChild(dl); }
+      const set = new Set();
+      try{ (this.getAtivosConsolidados?.() || []).forEach(a => { if(a?.ticker) set.add(String(a.ticker).toUpperCase().trim()); }); }catch(e){}
+      try{ (this.s?.banco || []).forEach(tx => { const t = String(tx.titulo || tx.ativoOrigem || tx.tickerDestino || '').toUpperCase().trim(); if(t) set.add(t); }); }catch(e){}
+      Object.values(this.v84LoadTituloMapManual?.() || {}).forEach(v => { const t = typeof v === 'string' ? v : v?.ticker; if(t) set.add(String(t).toUpperCase().trim()); });
+      dl.innerHTML = [...set].sort().map(t => `<option value="${this.esc ? this.esc(t) : t}"></option>`).join('');
+    };
+
+    A.v84EditarPreviewRow = function(idx, campo, valor){
+      const entries = this.v67PreviewEntries ? this.v67PreviewEntries() : (this.s?.pendingImportRows || []);
+      const entry = entries[idx];
+      if(!entry) return;
+      const row = entry.row || entry;
+      const oldQtd = this.parseNum(row.qtd);
+      const oldPreco = this.parseNum(row.preco);
+      const oldTotal = this.parseNum(this.normalizeLocal?.(row.local) === 'EXTERIOR' ? (row.valorDolar || row.valorOp) : row.valorOp);
+      const val = String(valor ?? '').trim();
+      if(campo === 'data'){
+        row.data = this.normData ? this.normData(val) : val;
+        row.ano = row.data ? parseInt(row.data.slice(0,4)) : row.ano;
+        row.mes = row.data ? parseInt(row.data.slice(5,7)) : row.mes;
+      } else if(campo === 'titulo') row.titulo = val.toUpperCase();
+      else if(campo === 'tipo') row.tipo = this.normalizeTipo ? this.normalizeTipo(val) : val.toUpperCase();
+      else if(campo === 'onde') row.onde = val.toUpperCase();
+      else if(campo === 'quem') row.quem = val.toUpperCase();
+      else if(campo === 'qtd') row.qtd = this.parseNum(val);
+      else if(campo === 'preco') row.preco = this.parseNum(val);
+      else if(campo === 'ptax') row.ptax = this.parseNum(val) || '';
+      else if(campo === 'total'){
+        if(this.normalizeLocal?.(row.local) === 'EXTERIOR') row.valorDolar = this.parseNum(val);
+        else row.valorOp = this.parseNum(val);
+      }
+      const exterior = this.normalizeLocal?.(row.local) === 'EXTERIOR';
+      if(campo === 'qtd' || campo === 'preco'){
+        const novoTotal = this.parseNum(row.qtd) * this.parseNum(row.preco);
+        const totalEraProduto = Math.abs(oldTotal - (oldQtd * oldPreco)) <= Math.max(0.02, Math.abs(oldTotal) * 0.0001);
+        if(novoTotal > 0 && (totalEraProduto || !oldTotal)){
+          if(exterior) row.valorDolar = novoTotal;
+          else row.valorOp = novoTotal;
+        }
+      }
+      if(exterior && this.parseNum(row.ptax) > 0 && this.parseNum(row.valorDolar) > 0){
+        row.valorOp = this.parseNum(row.valorDolar) * this.parseNum(row.ptax);
+      }
+      this.v84ReclassificarPreview(entries);
+      this.renderizarPreviewImportacao?.();
+    };
+
+    A.v84MapearTituloPreview = function(idx){
+      const entries = this.v67PreviewEntries ? this.v67PreviewEntries() : (this.s?.pendingImportRows || []);
+      const entry = entries[idx];
+      const row = entry?.row || entry;
+      if(!row) return;
+      const nome = row.nomeTituloOriginal || row.tituloOriginal || '';
+      const ticker = String(row.titulo || '').toUpperCase().trim();
+      if(!nome){ this.toast?.('Esta linha não tem nome original para vincular.', 'warning'); return; }
+      if(!this.v84TickerValido(ticker)){ this.toast?.('Informe um ticker válido antes de salvar o vínculo.', 'warning'); return; }
+      const key = this.v84NormTituloB3(nome);
+      const mapa = this.v84LoadTituloMapManual();
+      mapa[key] = { ticker, nomeOriginal:nome, salvoEm:new Date().toISOString(), origem:'preview_importacao' };
+      this.v84SaveTituloMapManual();
+      entries.forEach(e => {
+        const r = e.row || e;
+        if(this.v84NormTituloB3(r.nomeTituloOriginal || r.tituloOriginal || '') === key) r.titulo = ticker;
+      });
+      this.v84ReclassificarPreview(entries);
+      this.renderizarPreviewImportacao?.();
+      this.toast?.(`Vínculo salvo: ${nome} → ${ticker}. Próximas notas reconhecerão automaticamente.`, 'success', 4500);
+    };
+
+    A.v84RemoverPreviewRow = function(idx){
+      const entries = this.v67PreviewEntries ? this.v67PreviewEntries() : (this.s?.pendingImportRows || []);
+      if(idx < 0 || idx >= entries.length) return;
+      if(!confirm('Remover esta linha da prévia? Ela não será importada.')) return;
+      entries.splice(idx, 1);
+      this.v84ReclassificarPreview(entries);
+      this.renderizarPreviewImportacao?.();
+    };
+
+    A.v84SelectOptions = function(valor, arr){
+      return arr.map(v => `<option value="${this.esc(v)}" ${String(valor || '').toUpperCase() === v ? 'selected' : ''}>${this.esc(v)}</option>`).join('');
+    };
+
+    A.renderizarPreviewImportacao = function(){
+      const entries = this.v84ReclassificarPreview();
+      this.v84EnsurePreviewDatalists();
+      const body = document.getElementById('importPreviewBody');
+      const sum = document.getElementById('importPreviewSummary');
+      const head = document.querySelector('#modalImportPreview thead tr');
+      if(!body || !sum) return;
+      if(head){
+        head.innerHTML = '<th>Data</th><th>Ticker / vínculo</th><th>Tipo</th><th>Corretora</th><th>Titular</th><th>Qtd</th><th>Preço</th><th>Total</th><th>PTAX</th><th>Status</th><th>Ações</th>';
+      }
+      const validas = entries.filter(e => e.status !== 'inválido' && !e.row?.bloqueado && !e.row?.duplicado).length;
+      const invalidas = entries.length - validas;
+      const alertas = entries.filter(e => e.status === 'alerta').length;
+      const modelos = [...new Set(entries.map(e => e.row?.modeloNota).filter(Boolean))].join(' · ');
+      const totalBRL = entries.reduce((s,e)=>s + (this.normalizeLocal?.(e.row?.local)==='EXTERIOR' ? 0 : this.parseNum(e.row?.valorOp)), 0);
+      const totalUSD = entries.reduce((s,e)=>s + (this.normalizeLocal?.(e.row?.local)==='EXTERIOR' ? this.parseNum(e.row?.valorDolar || e.row?.valorOp) : 0), 0);
+      const totais = [totalBRL ? this.fmt(totalBRL) : '', totalUSD ? 'US$ ' + this.fmtN(totalUSD, 2) : ''].filter(Boolean).join(' · ');
+      const aprendidos = Object.keys(this.v84LoadTituloMapManual?.() || {}).length;
+      sum.innerHTML = `<div class="v52-import-summary"><div class="mini-metric"><div class="label">Modelo</div><div class="val">${this.esc(modelos || '—')}</div><div class="sub">${entries.length} linha(s) analisada(s)</div></div><div class="mini-metric"><div class="label">Importáveis</div><div class="val">${validas}</div><div class="sub">${alertas} alerta(s) · ${invalidas} bloqueada(s)</div></div><div class="mini-metric"><div class="label">Total lido</div><div class="val">${this.esc(totais || '—')}</div><div class="sub">conferir com o PDF</div></div><div class="mini-metric"><div class="label">Modo seguro</div><div class="val">${invalidas ? 'PARCIAL' : 'OK'}</div><div class="sub">linhas podem ser corrigidas aqui</div></div></div><div class="v84-preview-help"><strong>Agora a prévia é editável:</strong> ajuste ticker, data, tipo, corretora, titular, quantidade, preço, total ou PTAX antes de importar. Para FII não reconhecido, preencha o ticker e clique em <strong>Salvar vínculo</strong>; o nome original passará a ser reconhecido nas próximas importações. A janela e a tabela podem ser ampliadas arrastando o canto/borda. Mapeamentos salvos: <strong>${aprendidos}</strong>.</div>`;
+      body.innerHTML = entries.map((entry, i) => {
+        const row = entry.row || {};
+        const issues = entry.issues || [];
+        const status = entry.status || 'ok';
+        const exterior = this.normalizeLocal?.(row.local) === 'EXTERIOR';
+        const total = exterior ? this.parseNum(row.valorDolar || row.valorOp) : this.parseNum(row.valorOp);
+        const nomeOriginal = row.nomeTituloOriginal || row.tituloOriginal || '';
+        const key = nomeOriginal ? this.v84NormTituloB3(nomeOriginal) : '';
+        const temMapa = !!(key && (this.v84LoadTituloMapManual?.() || {})[key]);
+        const badge = (status === 'inválido' || row.bloqueado || row.duplicado) ? '<span class="badge b-sell">BLOQUEADO</span>' : status === 'alerta' ? '<span class="badge b-hold">ALERTA</span>' : '<span class="badge b-buy">OK</span>';
+        const detalhes = issues.map(x => this.esc(x.msg)).join(' · ') || row.motivoBloqueio || row.motivoDuplicidade || 'Sem alerta';
+        const trClass = (status === 'inválido' || row.bloqueado || row.duplicado) ? 'tx-bad-row' : '';
+        const mapChip = nomeOriginal ? `<span class="v84-map-chip ${temMapa ? 'ok' : (row.titulo ? 'warn' : 'warn')}">${temMapa ? 'vínculo salvo' : 'não aprendido'}</span>` : '';
+        return `<tr class="${trClass}">
+          <td><input class="v84-preview-input" type="date" value="${this.esc(row.data || '')}" onchange="app.v84EditarPreviewRow(${i},'data',this.value)"></td>
+          <td><div class="v84-ticker-box"><input class="v84-preview-input" list="v84TickerList" value="${this.esc(row.titulo || row.ativoOrigem || '')}" placeholder="Ticker" onchange="app.v84EditarPreviewRow(${i},'titulo',this.value)">${nomeOriginal ? `<div class="v84-original-title" title="${this.esc(nomeOriginal)}">Origem: ${this.esc(nomeOriginal)}</div><div class="v84-map-actions">${mapChip}<button type="button" class="btn btn-outline btn-xs" onclick="app.v84MapearTituloPreview(${i})">Salvar vínculo</button></div>` : ''}</div></td>
+          <td><select class="v84-preview-select" onchange="app.v84EditarPreviewRow(${i},'tipo',this.value)">${this.v84SelectOptions(row.tipo, ['COMPRA','VENDA','DIVIDENDO','PROVENTO','RENDIMENTO','AMORTIZACAO','DESDOBRAMENTO','GRUPAMENTO','BONIFICACAO'])}</select></td>
+          <td><input class="v84-preview-input" value="${this.esc(row.onde || '')}" placeholder="Corretora" onchange="app.v84EditarPreviewRow(${i},'onde',this.value)"></td>
+          <td><input class="v84-preview-input" value="${this.esc(row.quem || '')}" placeholder="Titular" onchange="app.v84EditarPreviewRow(${i},'quem',this.value)"></td>
+          <td><input class="v84-preview-input mono" value="${this.fmtN(this.parseNum(row.qtd), 6)}" onchange="app.v84EditarPreviewRow(${i},'qtd',this.value)"></td>
+          <td><input class="v84-preview-input mono" value="${this.fmtN(this.parseNum(row.preco), 4)}" onchange="app.v84EditarPreviewRow(${i},'preco',this.value)"></td>
+          <td><input class="v84-preview-input mono" value="${this.fmtN(total, 2)}" onchange="app.v84EditarPreviewRow(${i},'total',this.value)">${exterior && this.parseNum(row.valorOp)>0 ? `<div class="mini-note">${this.fmt(this.parseNum(row.valorOp))}</div>` : ''}</td>
+          <td><input class="v84-preview-input mono" value="${this.parseNum(row.ptax)>0 ? this.fmtN(row.ptax,4) : ''}" placeholder="—" onchange="app.v84EditarPreviewRow(${i},'ptax',this.value)"></td>
+          <td class="v84-status-cell">${badge}<div class="mini-note">${detalhes}</div></td>
+          <td><div class="v84-row-actions"><button type="button" class="btn btn-danger btn-xs" onclick="app.v84RemoverPreviewRow(${i})"><i class="ph ph-trash"></i> Remover</button></div></td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="11"><div class="empty-state" style="padding:24px"><i class="ph ph-file-search"></i><p>Nenhuma operação reconhecida.</p></div></td></tr>`;
+      this.abrirModal?.('modalImportPreview');
+    };
+
+    A.confirmarImportacaoPreview = function(){
+      const entries = this.v84ReclassificarPreview();
+      const validas = entries.filter(e => e.status !== 'inválido' && !e.row?.bloqueado && !e.row?.duplicado).map(e => e.row);
+      if(!validas.length){ this.toast?.('Nenhuma linha válida para importar.', 'warning'); return; }
+      const temExterior = validas.some(r => this.normalizeLocal?.(r.local) === 'EXTERIOR');
+      const total = validas.reduce((s,r) => s + (temExterior ? this.parseNum(r.valorDolar || r.valorOp) : this.parseNum(r.valorOp)), 0);
+      if(!confirm(`Gravar ${validas.length} operação(ões)? Total conferido: ${temExterior ? 'US$ ' + this.fmtN(total,2) : this.fmt(total)}.`)) return;
+      this.s.banco = this.normalizarBancoImportado ? this.normalizarBancoImportado([...(this.s.banco || []), ...validas]) : [...(this.s.banco || []), ...validas];
+      this._salvarBanco?.();
+      this.v84SaveTituloMapManual?.();
+      if(validas.some(r => r.origemImportacao === 'PDF_NOTA')){
+        const hist = this.loadJSON ? this.loadJSON('wOS_importHistorico', []) : [];
+        const first = validas[0] || {};
+        hist.unshift({ dataImportacao:new Date().toISOString(), arquivo:first.observacaoImportacao || first.fileName || 'PDF', corretora:first.onde || '', modelo:first.modeloNota || '', qtdOperacoes:validas.length, totalNota:total, moeda:temExterior ? 'USD' : 'BRL', status:'Importado' });
+        this.saveJSON?.('wOS_importHistorico', hist.slice(0,200));
+        this.s.importHistorico = hist.slice(0,200);
+      }
+      this.s.pendingImportRows = [];
+      this.s.importPreview = [];
+      this.fecharModal?.('modalImportPreview');
+      this.toast?.(`${validas.length} operação(ões) importada(s).`, 'success');
+      this.reprocessarBase?.();
+    };
+
+    A.salvarTudoLocal = function(){
+      const ret = oldSalvarTudoLocal ? oldSalvarTudoLocal(...arguments) : undefined;
+      this.v84SaveTituloMapManual?.();
+      return ret;
+    };
+
+    A.montarBackupPayload = function(origem){
+      const payload = oldMontarBackupPayload ? oldMontarBackupPayload(origem) : {};
+      payload.b3TituloMapManual = this.v84LoadTituloMapManual?.() || {};
+      payload.wOS_b3TituloMapManual = payload.b3TituloMapManual;
+      return payload;
+    };
+
+    A.extrairBackupCompat = function(d){
+      const b = oldExtrairBackupCompat ? oldExtrairBackupCompat(d) : {};
+      const root = this.parsePossivelJSON ? (this.parsePossivelJSON(d, d) || {}) : (d || {});
+      const mapa = root.b3TituloMapManual || root.wOS_b3TituloMapManual;
+      if(mapa && typeof mapa === 'object'){
+        b.b3TituloMapManual = mapa;
+        this.__v84MapaBackupRestaurado = mapa;
+      }
+      return b;
+    };
+
+    A.migrarEstruturas = function(){
+      const ret = oldMigrarEstruturas ? oldMigrarEstruturas(...arguments) : undefined;
+      if(this.__v84MapaBackupRestaurado){
+        this.s.b3TituloMapManual = this.__v84MapaBackupRestaurado;
+        this.v84SaveTituloMapManual?.();
+        delete this.__v84MapaBackupRestaurado;
+      }
+      return ret;
+    };
+
+    A.v84LoadTituloMapManual();
+    const brand = document.querySelector('.brand sub'); if(brand) brand.textContent = 'v84 · importação editável';
+    document.title = 'Patrimônio OS · v84 Importação editável';
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV84ImportPreviewEditor, 1300));
+  installV84ImportPreviewEditor();
+  window.addEventListener('load', () => setTimeout(installV84ImportPreviewEditor, 1400));
+  setTimeout(installV84ImportPreviewEditor, 2400);
 })();
 </script>
 
