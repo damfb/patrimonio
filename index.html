@@ -1062,7 +1062,6 @@
 <div class="nav-label">Principal</div>
 <div class="nav-item active" data-view="view-dashboard"><i class="ph ph-squares-four"></i> Dashboard</div>
 <div class="nav-item" data-view="view-proximo-aporte"><i class="ph ph-target"></i> Próximo Aporte</div>
-<div class="nav-item" data-view="view-celular"><i class="ph ph-device-mobile"></i> Celular</div>
 <div class="nav-item" data-view="view-ativos"><i class="ph ph-briefcase"></i> Meus Ativos</div>
 <div class="nav-item" data-view="view-renda"><i class="ph ph-hand-coins"></i> Renda Passiva</div>
 </div>
@@ -1095,6 +1094,10 @@
 <div class="status-pill" onclick="app.buscarCotacoes()" title="Clique para sincronizar cotações">
 <div class="status-dot" id="statusDot"></div>
 <span id="statusCotacao">Pronto</span>
+</div>
+<div class="status-pill" id="statusPlanilhaCotacoes" onclick="app.abrirPlanilhaCotacoes()" title="Abrir a planilha configurada para as cotações">
+<i class="ph ph-table" style="font-size:15px;color:var(--primary)"></i>
+<span>Planilha</span>
 </div>
 <div class="status-pill v72-dollar-pill" onclick="app.navigate('view-config', document.querySelector('.nav-item[data-view=\'view-config\']'))" title="Dólar atual usado pelo sistema. Edite em Configurações.">
 <i class="ph ph-currency-dollar" style="font-size:15px;color:var(--primary)"></i>
@@ -1130,52 +1133,6 @@
 <div class="grid-2" style="margin-top:18px;">
 <div class="card"><div class="card-hd"><div class="card-title"><i class="ph-fill ph-sliders-horizontal"></i> Impacto por classe</div></div><div class="macro-bars" id="proximoAporteMacro"></div></div>
 <div class="card"><div class="card-hd"><div class="card-title"><i class="ph-fill ph-warning-circle"></i> Observações</div></div><div class="quick-list" id="proximoAporteObs"></div></div>
-</div>
-</section>
-<!-- ───────── CELULAR / IPHONE ───────── -->
-<section class="view" id="view-celular">
-<div class="info-box">
-            Visão condensada para iPhone: patrimônio, exterior, média de aporte, renda passiva/dividendos e composição principal da carteira.
-        </div>
-<div class="mobile-grid">
-<div class="mobile-card primary">
-<div class="mobile-label"><i class="ph-fill ph-wallet"></i> Total da Carteira</div>
-<div class="mobile-val" id="mobileTotal">R$ 0,00</div>
-<div class="mobile-sub" id="mobileTotalSub">Valor a mercado consolidado</div>
-<div class="mobile-pill-line" id="mobileQuickPills"></div>
-</div>
-<div class="mobile-card">
-<div class="mobile-label"><i class="ph-fill ph-currency-dollar"></i> Exterior</div>
-<div class="mobile-val" id="mobileExterior">US$ 0,00</div>
-<div class="mobile-sub" id="mobileExteriorSub">Convertido pelo dólar atual</div>
-</div>
-<div class="mobile-card">
-<div class="mobile-label"><i class="ph-fill ph-trend-up"></i> Aporte médio</div>
-<div class="mobile-val" id="mobileAporteMedio">R$ 0,00</div>
-<div class="mobile-sub" id="mobileAporteSub">Últimos 12 meses</div>
-</div>
-<div class="mobile-card">
-<div class="mobile-label"><i class="ph-fill ph-hand-coins"></i> Dividendos / renda</div>
-<div class="mobile-val" id="mobileRenda12m">R$ 0,00</div>
-<div class="mobile-sub" id="mobileRendaSub">Últimos 12 meses</div>
-</div>
-<div class="mobile-card">
-<div class="mobile-label"><i class="ph-fill ph-calendar-check"></i> Ano corrente</div>
-<div class="mobile-val" id="mobileAnoCorrente">R$ 0,00</div>
-<div class="mobile-sub" id="mobileAnoSub">Aportes no ano</div>
-</div>
-</div>
-<div class="card">
-<div class="mobile-section-title"><i class="ph-fill ph-chart-donut" style="color:var(--primary)"></i> Alocação resumida</div>
-<div class="mobile-list" id="mobileAlocacao"></div>
-</div>
-<div class="card">
-<div class="mobile-section-title"><i class="ph-fill ph-target" style="color:var(--success)"></i> Próximo aporte sugerido</div>
-<div class="mobile-list" id="mobileSugestaoAporte"></div>
-</div>
-<div class="card">
-<div class="mobile-section-title"><i class="ph-fill ph-star" style="color:var(--warning)"></i> Maiores posições</div>
-<div class="mobile-list" id="mobileTopAtivos"></div>
 </div>
 </section>
 <!-- ───────── DASHBOARD ───────── -->
@@ -15144,6 +15101,1743 @@ window.addEventListener('load', () => app.init());
   installV84ImportPreviewEditor();
   window.addEventListener('load', () => setTimeout(installV84ImportPreviewEditor, 1400));
   setTimeout(installV84ImportPreviewEditor, 2400);
+})();
+</script>
+
+<!-- Ajustes solicitados: planilha no topo, filtro de criptos e números compactos nos gráficos -->
+<script id="ajustes-solicitados-20260720">
+(function(){
+  function instalarAjustesSolicitados(){
+    const A = window.app;
+    if(!A || A.__ajustesSolicitados20260720) return;
+    A.__ajustesSolicitados20260720 = true;
+
+    A.abrirPlanilhaCotacoes = function(){
+      const url = String(this.s?.config?.brapiToken || document.getElementById('inputBrapi')?.value || '').trim();
+      if(!url){
+        this.toast?.('Configure o link da planilha em Configurações.', 'warning');
+        const nav = document.querySelector('.nav-item[data-view="view-config"]');
+        this.navigate?.('view-config', nav);
+        setTimeout(() => document.getElementById('inputBrapi')?.focus(), 80);
+        return;
+      }
+      try{
+        const destino = new URL(url);
+        if(!/^https?:$/.test(destino.protocol)) throw new Error('protocolo inválido');
+        window.open(destino.href, '_blank', 'noopener,noreferrer');
+      }catch(e){
+        this.toast?.('O link da planilha configurado não é válido.', 'error');
+      }
+    };
+
+    const getAtivosSemCompraAnterior = A.v70GetAtivosSemCompra?.bind(A);
+    if(getAtivosSemCompraAnterior){
+      A.v70GetAtivosSemCompra = function(){
+        const itens = getAtivosSemCompraAnterior(...arguments) || [];
+        return itens.filter(item => {
+          const classe = String(item?.classe || '').trim().toUpperCase();
+          if(classe !== 'CRIPTO') return true;
+          const ticker = String(item?.ticker || '').trim().toUpperCase();
+          return ticker.includes('BITCOIN') || ticker.startsWith('BTC');
+        });
+      };
+    }
+
+    A.v85NumeroCompacto = function(valor){
+      const numero = Number(valor || 0);
+      if(!Number.isFinite(numero)) return '0';
+      const absoluto = Math.abs(numero);
+      const sinal = numero < 0 ? '-' : '';
+      const formatar = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits:0, maximumFractionDigits:1 });
+      if(absoluto >= 1000000000) return sinal + formatar(absoluto / 1000000000) + 'B';
+      if(absoluto >= 1000000) return sinal + formatar(absoluto / 1000000) + 'M';
+      if(absoluto >= 1000) return sinal + formatar(absoluto / 1000) + 'k';
+      return sinal + formatar(absoluto);
+    };
+
+    A.v85DashboardValueLabels = function(pluginId){
+      const appRef = this;
+      return {
+        id: pluginId,
+        afterDatasetsDraw(chart){
+          const ctx = chart.ctx;
+          const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#e8eef8';
+          ctx.save();
+          ctx.fillStyle = textColor;
+          ctx.font = '600 11px DM Sans, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            meta.data.forEach((point, index) => {
+              const value = Number(dataset.data[index] || 0);
+              if(!value) return;
+              ctx.fillText(appRef.v85NumeroCompacto(value), point.x, point.y - 8);
+            });
+          });
+          ctx.restore();
+        }
+      };
+    };
+
+    A.v75RenderDashboardEvolutionCharts = function(){
+      if(typeof Chart === 'undefined') return;
+      const c1 = document.getElementById('v75ChartAporteDashboard');
+      const c2 = document.getElementById('v75ChartRendaFixaDashboard');
+      if(!c1 || !c2) return;
+      const data = this.v75DashboardEvolutionData?.() || {anos:[], aporte:[], rendaFixa:[]};
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+      const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+      const fmtCompacto = (val) => 'R$ ' + this.v85NumeroCompacto(val);
+      const opts = (titulo) => ({
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{ labels:{ color:textColor } },
+          tooltip:{ callbacks:{
+            label:(ctx) => `${titulo}: ${this.fmt ? this.fmt(ctx.parsed.y || 0) : fmtCompacto(ctx.parsed.y || 0)}/mês`,
+            afterLabel:(ctx) => {
+              const arr = titulo.includes('Aporte') ? data.aporte : data.rendaFixa;
+              const item = arr[ctx.dataIndex] || {};
+              if(!item.total) return '';
+              return `Total considerado: ${this.fmt ? this.fmt(item.total) : fmtCompacto(item.total)}${item.meses ? ` · meses: ${item.meses}` : ''}`;
+            }
+          } }
+        },
+        scales:{
+          x:{ ticks:{ color:textColor }, grid:{ color:gridColor } },
+          y:{ ticks:{ color:textColor, callback:fmtCompacto }, grid:{ color:gridColor } }
+        }
+      });
+      if(this.s.v75ChartAporteDashboard){ try{ this.s.v75ChartAporteDashboard.destroy(); }catch(e){} this.s.v75ChartAporteDashboard = null; }
+      if(this.s.v75ChartRendaFixaDashboard){ try{ this.s.v75ChartRendaFixaDashboard.destroy(); }catch(e){} this.s.v75ChartRendaFixaDashboard = null; }
+      const extraPluginsAporte = [this.v85DashboardValueLabels?.('v85CompactLabelsAporte'), this.v76GrowthBetweenYearsPlugin?.('v76GrowthAporte')].filter(Boolean);
+      const extraPluginsRenda = [this.v85DashboardValueLabels?.('v85CompactLabelsRenda'), this.v76GrowthBetweenYearsPlugin?.('v76GrowthRenda')].filter(Boolean);
+      this.s.v75ChartAporteDashboard = new Chart(c1, {
+        type:'line',
+        data:{ labels:data.anos.map(String), datasets:[{ label:'Aporte médio mensal', data:data.aporte.map(i=>i.valor || 0), borderColor:'#3d8ef0', backgroundColor:'rgba(61,142,240,0.18)', tension:0.25, fill:true, pointRadius:4 }] },
+        options:opts('Aporte médio'),
+        plugins:extraPluginsAporte
+      });
+      this.s.v75ChartRendaFixaDashboard = new Chart(c2, {
+        type:'line',
+        data:{ labels:data.anos.map(String), datasets:[{ label:'Renda passiva média mensal', data:data.rendaFixa.map(i=>i.valor || 0), borderColor:'#3d8ef0', backgroundColor:'rgba(61,142,240,0.18)', tension:0.25, fill:true, pointRadius:4 }] },
+        options:opts('Renda passiva média'),
+        plugins:extraPluginsRenda
+      });
+    };
+
+    try{
+      A.v70RenderSemCompra?.();
+      A.v75EnsureDashboardEvolutionCharts?.();
+    }catch(e){ console.warn('Ajustes solicitados', e); }
+  }
+
+  instalarAjustesSolicitados();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarAjustesSolicitados);
+  window.addEventListener('load', () => setTimeout(instalarAjustesSolicitados, 100));
+  setTimeout(instalarAjustesSolicitados, 1500);
+})();
+</script>
+
+
+<!-- Ajuste solicitado: atualização dos valores dentro da composição do patrimônio -->
+<style id="v86-composicao-editor-style">
+#view-dashboard .v86-composicao-card{cursor:pointer;}
+#view-dashboard .v86-composicao-card:hover{border-color:var(--primary)!important;box-shadow:0 8px 24px rgba(61,142,240,.14)!important;}
+#view-dashboard .v86-composicao-card .card-hd{align-items:flex-start;gap:12px;flex-wrap:wrap;}
+#view-dashboard .v86-composicao-card .v86-comp-actions{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+#view-dashboard .v86-composicao-card .v86-last-update{font-size:10.5px;color:var(--text-muted);font-weight:700;white-space:nowrap;}
+#view-dashboard .v86-composicao-card .v86-update-btn{white-space:nowrap;}
+#view-dashboard .v86-manual-card-hidden{display:none!important;}
+.v86-editor-intro{margin-bottom:14px;}
+.v86-editor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px;}
+.v86-editor-summary-card{border:1px solid var(--border);background:var(--bg-card);border-radius:12px;padding:11px 12px;}
+.v86-editor-summary-card span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.55px;color:var(--text-muted);font-weight:900;margin-bottom:4px;}
+.v86-editor-summary-card strong{display:block;font-family:var(--font-mono);font-size:16px;line-height:1.15;}
+.v86-editor-section{border:1px solid var(--border);background:var(--bg-card);border-radius:14px;padding:13px;margin-top:10px;}
+.v86-editor-section-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.v86-editor-section-title{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:800;font-size:14px;}
+.v86-editor-section-title i{color:var(--primary);font-size:18px;}
+.v86-editor-section-help{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.35;}
+.v86-editor-rows{display:flex;flex-direction:column;gap:8px;}
+.v86-editor-row{display:grid;grid-template-columns:minmax(180px,1.35fr) minmax(135px,.65fr) 42px;gap:8px;align-items:center;}
+.v86-editor-row .f-input{margin:0;}
+.v86-editor-empty{border:1px dashed var(--border-bright);border-radius:10px;padding:14px;text-align:center;color:var(--text-muted);font-size:12px;}
+.v86-editor-last{display:flex;align-items:center;gap:7px;margin-top:12px;color:var(--text-muted);font-size:11px;font-weight:700;}
+.v86-editor-last i{color:var(--primary);font-size:15px;}
+@media(max-width:760px){
+  #view-dashboard .v86-composicao-card .v86-comp-actions{width:100%;margin-left:0;align-items:flex-start;}
+  .v86-editor-summary{grid-template-columns:1fr;}
+  .v86-editor-row{grid-template-columns:1fr 1fr 40px;}
+}
+@media(max-width:520px){.v86-editor-row{grid-template-columns:1fr 40px;}.v86-editor-row .v86-value-input{grid-column:1;}.v86-editor-row .v86-remove-btn{grid-column:2;grid-row:1 / span 2;align-self:stretch;}}
+</style>
+<script id="v86-composicao-editor-script">
+(function(){
+  function instalarEditorComposicao(){
+    const A = window.app;
+    if(!A || A.__v86ComposicaoEditorInstalado) return;
+    A.__v86ComposicaoEditorInstalado = true;
+
+    const classificarAnterior = A.classificarOutroAtivoSegmento?.bind(A);
+    A.classificarOutroAtivoSegmento = function(item){
+      const explicito = String(item?.segmentoPatrimonio || '').trim();
+      if(explicito === 'rendaFixa' || explicito === 'dinheiroPreso') return explicito;
+      return classificarAnterior ? classificarAnterior(item) : 'rendaFixa';
+    };
+
+    A.v86LerUltimaAtualizacaoPatrimonio = function(){
+      return localStorage.getItem('wOS_patrimonioUltimaAtualizacao') || '';
+    };
+
+    A.v86FormatarUltimaAtualizacaoPatrimonio = function(valor){
+      if(!valor) return 'Última atualização: ainda não registrada';
+      const d = new Date(valor);
+      if(Number.isNaN(d.getTime())) return 'Última atualização: ainda não registrada';
+      return `Última atualização: ${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    };
+
+    A.v86GarantirModalComposicao = function(){
+      if(document.getElementById('modalComposicaoEditorV86')) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      overlay.id = 'modalComposicaoEditorV86';
+      overlay.innerHTML = `
+        <div class="modal" style="max-width:900px;max-height:92vh;overflow:auto;">
+          <div class="modal-title"><i class="ph ph-squares-four"></i> Atualizar composição do patrimônio</div>
+          <div class="info-box v86-editor-intro"><strong>Como funciona:</strong> a renda variável é calculada automaticamente pelas operações e cotações. Preencha abaixo somente os valores manuais de renda fixa/caixa e dinheiro preso.</div>
+          <div class="v86-editor-summary">
+            <div class="v86-editor-summary-card"><span>Renda variável · automática</span><strong id="v86ResumoRV">R$ 0,00</strong></div>
+            <div class="v86-editor-summary-card"><span>Renda fixa / caixa</span><strong id="v86ResumoRF">R$ 0,00</strong></div>
+            <div class="v86-editor-summary-card"><span>Dinheiro preso</span><strong id="v86ResumoPreso">R$ 0,00</strong></div>
+          </div>
+          <div id="v86ComposicaoEditorBody"></div>
+          <div class="v86-editor-last"><i class="ph ph-clock-counter-clockwise"></i><span id="v86ModalUltimaAtualizacao">Última atualização: ainda não registrada</span></div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="app.fecharModal('modalComposicaoEditorV86')">Cancelar</button>
+            <button class="btn btn-primary" onclick="app.salvarComposicaoPatrimonioV86()"><i class="ph ph-floppy-disk"></i> Salvar atualização</button>
+          </div>
+        </div>`;
+      overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classList.remove('active'); });
+      document.body.appendChild(overlay);
+    };
+
+    A.v86NovoItemComposicao = function(segmento){
+      this.__v86ComposicaoDraft = Array.isArray(this.__v86ComposicaoDraft) ? this.__v86ComposicaoDraft : [];
+      this.__v86ComposicaoDraft.push({
+        id:this.idGen?.() || ('manual_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+        nome:'',
+        valor:0,
+        grupo:segmento === 'dinheiroPreso' ? 'Imobilizados' : 'Outros',
+        segmentoPatrimonio:segmento
+      });
+      this.v86RenderEditorComposicao?.();
+      setTimeout(() => {
+        const rows = document.querySelectorAll(`#v86ComposicaoEditorBody [data-segmento="${segmento}"] .v86-editor-row`);
+        rows[rows.length-1]?.querySelector('input[data-campo="nome"]')?.focus();
+      }, 30);
+    };
+
+    A.v86AtualizarItemComposicao = function(id,campo,valor){
+      const item = (this.__v86ComposicaoDraft || []).find(i => String(i.id) === String(id));
+      if(!item) return;
+      item[campo] = campo === 'valor' ? (this.parseNum?.(valor) || 0) : valor;
+      this.v86AtualizarResumoEditorComposicao?.();
+    };
+
+    A.v86RemoverItemComposicao = function(id){
+      this.__v86ComposicaoDraft = (this.__v86ComposicaoDraft || []).filter(i => String(i.id) !== String(id));
+      this.v86RenderEditorComposicao?.();
+    };
+
+    A.v86AtualizarResumoEditorComposicao = function(){
+      const segAtual = this.getResumoPatrimonioSegmentos?.() || {rendaVariavel:0};
+      const draft = this.__v86ComposicaoDraft || [];
+      const somar = segmento => draft.filter(i => this.classificarOutroAtivoSegmento(i) === segmento).reduce((s,i)=>s+(this.parseNum?.(i.valor)||0),0);
+      const set = (id,valor) => { const el=document.getElementById(id); if(el) el.textContent=this.fmt?.(valor)||String(valor); };
+      set('v86ResumoRV', Number(segAtual.rendaVariavel||0));
+      set('v86ResumoRF', somar('rendaFixa'));
+      set('v86ResumoPreso', somar('dinheiroPreso'));
+    };
+
+    A.v86RenderEditorComposicao = function(){
+      const body = document.getElementById('v86ComposicaoEditorBody');
+      if(!body) return;
+      const draft = this.__v86ComposicaoDraft || [];
+      const secao = (segmento,titulo,ajuda,icone) => {
+        const itens = draft.filter(i => this.classificarOutroAtivoSegmento(i) === segmento);
+        const linhas = itens.length ? itens.map(item => `
+          <div class="v86-editor-row">
+            <input class="f-input" data-campo="nome" type="text" placeholder="Descrição, ex.: CDB, Tesouro, imóvel" value="${this.esc?.(item.nome||'')||''}" oninput="app.v86AtualizarItemComposicao('${this.esc?.(item.id)||item.id}','nome',this.value)">
+            <input class="f-input v86-value-input" data-campo="valor" type="text" inputmode="decimal" placeholder="R$ 0,00" value="${this.fmtN?.(this.parseNum?.(item.valor)||0,2)||'0,00'}" oninput="app.v86AtualizarItemComposicao('${this.esc?.(item.id)||item.id}','valor',this.value)">
+            <button class="btn btn-danger btn-sm v86-remove-btn" title="Remover item" onclick="app.v86RemoverItemComposicao('${this.esc?.(item.id)||item.id}')"><i class="ph ph-trash"></i></button>
+          </div>`).join('') : '<div class="v86-editor-empty">Nenhum valor informado nesta categoria.</div>';
+        return `<section class="v86-editor-section" data-segmento="${segmento}">
+          <div class="v86-editor-section-hd">
+            <div><div class="v86-editor-section-title"><i class="ph ${icone}"></i>${titulo}</div><div class="v86-editor-section-help">${ajuda}</div></div>
+            <button class="btn btn-outline btn-sm" onclick="app.v86NovoItemComposicao('${segmento}')"><i class="ph ph-plus"></i> Adicionar valor</button>
+          </div>
+          <div class="v86-editor-rows">${linhas}</div>
+        </section>`;
+      };
+      body.innerHTML = secao('rendaFixa','Renda fixa / caixa','CDB, Tesouro, contas, saldos, reservas, objetivos e outros valores com liquidez.','ph-bank') + secao('dinheiroPreso','Dinheiro preso','Previdência, imóveis, veículos, cauções, garantias e valores sem liquidez imediata.','ph-lock-key');
+      this.v86AtualizarResumoEditorComposicao?.();
+      const ultima = this.v86FormatarUltimaAtualizacaoPatrimonio?.(this.v86LerUltimaAtualizacaoPatrimonio?.());
+      const el = document.getElementById('v86ModalUltimaAtualizacao'); if(el) el.textContent = ultima;
+    };
+
+    A.abrirEditorComposicaoPatrimonio = function(){
+      this.v86GarantirModalComposicao?.();
+      this.__v86ComposicaoDraft = (this.s?.outrosAtivos || []).map(item => ({
+        ...item,
+        id:item.id || this.idGen?.() || ('manual_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
+        segmentoPatrimonio:this.classificarOutroAtivoSegmento(item)
+      }));
+      this.v86RenderEditorComposicao?.();
+      this.abrirModal?.('modalComposicaoEditorV86');
+    };
+
+    A.salvarComposicaoPatrimonioV86 = function(){
+      const draft = (this.__v86ComposicaoDraft || []).map(item => {
+        const segmento = this.classificarOutroAtivoSegmento(item);
+        const valor = this.parseNum?.(item.valor) || 0;
+        let nome = String(item.nome || '').trim();
+        if(!nome && valor > 0) nome = segmento === 'dinheiroPreso' ? 'Item de dinheiro preso' : 'Item de renda fixa / caixa';
+        let grupo = item.grupo || 'Outros';
+        if(segmento === 'dinheiroPreso' && !/(aposent|imobil|previd|im[oó]vel|ve[ií]culo|carro|cau[cç][aã]o|garantia)/i.test(grupo)) grupo = 'Imobilizados';
+        if(segmento === 'rendaFixa' && /(aposent|imobil)/i.test(grupo)) grupo = 'Outros';
+        return {...item,nome,valor,grupo,segmentoPatrimonio:segmento};
+      }).filter(item => item.nome || item.valor > 0);
+      this.s = this.s || {};
+      this.s.outrosAtivos = draft;
+      this.salvarOutrosAtivos?.();
+      const agora = new Date().toISOString();
+      localStorage.setItem('wOS_patrimonioUltimaAtualizacao', agora);
+      this.fecharModal?.('modalComposicaoEditorV86');
+      this.renderizarOutrosAtivos?.();
+      this.renderizarDashboard?.();
+      this.v86PrepararComposicaoPatrimonio?.();
+      this.toast?.('Composição do patrimônio atualizada.', 'success');
+    };
+
+    A.v86PrepararComposicaoPatrimonio = function(){
+      const card = document.getElementById('patrimonioSegmentosResumo')?.closest('.card');
+      if(card){
+        card.classList.add('v86-composicao-card');
+        card.setAttribute('title','Clique para atualizar os valores da composição do patrimônio');
+        card.onclick = ev => {
+          if(ev.target?.closest?.('button,a,input,select,textarea')) return;
+          this.abrirEditorComposicaoPatrimonio?.();
+        };
+        const hd = card.querySelector('.card-hd');
+        if(hd){
+          let actions = hd.querySelector('.v86-comp-actions');
+          if(!actions){
+            actions = document.createElement('div');
+            actions.className = 'v86-comp-actions';
+            actions.innerHTML = '<span class="v86-last-update" id="v86PatrimonioUltimaAtualizacao"></span><button class="btn btn-outline btn-sm v86-update-btn" onclick="app.abrirEditorComposicaoPatrimonio()"><i class="ph ph-pencil-simple"></i> Atualizar valores</button>';
+            hd.appendChild(actions);
+          }
+          const last = actions.querySelector('#v86PatrimonioUltimaAtualizacao');
+          if(last) last.textContent = this.v86FormatarUltimaAtualizacaoPatrimonio?.(this.v86LerUltimaAtualizacaoPatrimonio?.());
+        }
+      }
+      const manualCard = document.getElementById('outrosAtivosContainer')?.closest('.card');
+      if(manualCard) manualCard.classList.add('v86-manual-card-hidden');
+    };
+
+    const envolverDepois = (nome) => {
+      const anterior = A[nome]?.bind(A);
+      if(!anterior || anterior.__v86Wrapped) return;
+      const fn = function(){
+        const ret = anterior(...arguments);
+        setTimeout(() => this.v86PrepararComposicaoPatrimonio?.(), 0);
+        return ret;
+      };
+      fn.__v86Wrapped = true;
+      A[nome] = fn;
+    };
+    ['renderizarDashboard','atualizarTudo','v65RenderPatrimonioSegments','v69PrepararDashboard','v70PrepararDashboardHierarquia'].forEach(envolverDepois);
+
+    A.v86GarantirModalComposicao?.();
+    A.v86PrepararComposicaoPatrimonio?.();
+    [150,700,1600,3200].forEach(ms => setTimeout(() => A.v86PrepararComposicaoPatrimonio?.(), ms));
+  }
+
+  instalarEditorComposicao();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarEditorComposicao);
+  window.addEventListener('load', () => setTimeout(instalarEditorComposicao, 120));
+  setTimeout(instalarEditorComposicao, 1800);
+})();
+</script>
+
+
+<style id="v87-ptax-dividendos-style">
+.v87-audit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0 14px;}
+.v87-audit-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface-2,rgba(255,255,255,.025));min-width:0;}
+.v87-audit-card span{display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;line-height:1.25;}
+.v87-audit-card strong{display:block;font-size:15px;line-height:1.25;overflow-wrap:anywhere;}
+.v87-audit-card.v87-ok{border-color:color-mix(in srgb,var(--success) 55%,var(--border));background:var(--success-glow);}
+.v87-audit-card.v87-warn{border-color:color-mix(in srgb,var(--warning) 55%,var(--border));background:var(--warning-glow);}
+.v87-check-table td,.v87-check-table th{white-space:nowrap;}
+.v87-check-table td:first-child,.v87-check-table th:first-child{white-space:normal;}
+.v87-diff-ok{color:var(--success);font-weight:800;}
+.v87-diff-warn{color:var(--warning);font-weight:800;}
+.v87-ptax-help{margin-top:12px;}
+.v87-ptax-status{font-size:12px;color:var(--text-muted);margin-top:9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+@media(max-width:760px){.v87-audit-grid{grid-template-columns:1fr 1fr}.v87-check-table{font-size:12px}}
+</style>
+<script id="v87-ptax-dividendos-script">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app = app; return app; } }catch(e){} return null; }
+  function installV87(){
+    const A = getApp();
+    if(!A || A.__v87PtaxDividendosInstalled) return;
+    A.__v87PtaxDividendosInstalled = true;
+    A.VERSAO_SISTEMA = 'v87_ptax_planilha_dividendos_conferencia';
+    document.title = 'Patrimônio OS · PTAX e dividendos ajustados';
+
+    const normTxt = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u00ad\ufffe]/g, '').replace(/\s+/g, ' ').trim();
+    const round2 = v => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100;
+    const fmtUSD = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const parseUSD = v => {
+      let s = String(v || '').trim().replace(/[^\d.,\-]/g,'');
+      if(!s) return 0;
+      if(s.includes('.') && s.includes(',')) s = s.replace(/,/g,'');
+      else if(s.includes(',') && !s.includes('.')) s = s.replace(',','.');
+      return parseFloat(s) || 0;
+    };
+    const brToIso = br => { const m=String(br||'').match(/^(\d{2})\/(\d{2})\/(20\d{2})$/); return m ? `${m[3]}-${m[2]}-${m[1]}` : ''; };
+    const isoToBR = iso => { const m=String(iso||'').match(/^(20\d{2})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso||''); };
+    const escHtml = s => String(s ?? '').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    const esc = (ctx,s) => ctx && typeof ctx.esc === 'function' ? ctx.esc(s) : escHtml(s);
+    const diffClass = v => Math.abs(Number(v || 0)) <= 0.01 ? 'v87-diff-ok' : 'v87-diff-warn';
+    const diffTextUSD = v => `${Number(v || 0) >= 0 ? '+' : '-'}${fmtUSD(Math.abs(Number(v || 0)))}`;
+
+    A.v87ParseDataPlanilhaPTAX = function(valor, formatado=''){
+      if(valor instanceof Date && !isNaN(valor.getTime())) return `${valor.getFullYear()}-${String(valor.getMonth()+1).padStart(2,'0')}-${String(valor.getDate()).padStart(2,'0')}`;
+      const candidatos = [formatado, valor].map(v=>String(v ?? '').trim()).filter(Boolean);
+      for(const raw of candidatos){
+        let m = raw.match(/^(20\d{2})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+        if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+        m = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/);
+        if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+        m = raw.match(/^Date\((20\d{2}),(\d{1,2}),(\d{1,2})\)$/i);
+        if(m) return `${m[1]}-${String(Number(m[2])+1).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+      }
+      return '';
+    };
+
+    A.v87ExtrairIdPlanilha = function(){
+      const url = String(this.s?.config?.brapiToken || '').trim();
+      const m = url.match(/docs\.google\.com\/spreadsheets\/d\/(?!e\/)([a-zA-Z0-9_-]+)/i);
+      return m ? m[1] : '';
+    };
+
+    A.v87GvizJSONP = function(sheetId, sheetName='PTAX'){
+      return new Promise((resolve,reject)=>{
+        if(!sheetId){ reject(new Error('Use o link de Compartilhar da planilha para ler a aba PTAX.')); return; }
+        const cb = 'v87PtaxCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        const scriptId = '_v87PtaxScript_' + cb;
+        let timer;
+        const limpar = () => { clearTimeout(timer); document.getElementById(scriptId)?.remove(); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } };
+        window[cb] = data => { limpar(); if(!data?.table?.rows){ reject(new Error('A aba PTAX não retornou linhas.')); return; } resolve(data.table.rows); };
+        timer = setTimeout(()=>{ limpar(); reject(new Error('Tempo esgotado ao consultar a aba PTAX.')); },9000);
+        const s=document.createElement('script');
+        s.id=scriptId;
+        s.src=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cb}&headers=0&sheet=${encodeURIComponent(sheetName)}`;
+        s.onerror=()=>{ limpar(); reject(new Error('Não foi possível acessar a aba PTAX. Confira o nome e a permissão da planilha.')); };
+        document.body.appendChild(s);
+      });
+    };
+
+    A.v87BuscarPTAXPlanilha = async function(opcoes={}){
+      const silencioso = opcoes?.silencioso !== false;
+      const id = this.v87ExtrairIdPlanilha?.();
+      if(!id){
+        if(!silencioso) this.toast?.('Para sincronizar a aba PTAX, use o link de Compartilhar do Google Sheets, não apenas o CSV publicado.', 'warning', 5500);
+        return {lidos:0, ignorados:0, motivo:'sem_id'};
+      }
+      try{
+        const rows = await this.v87GvizJSONP(id,'PTAX');
+        let lidos=0, ignorados=0;
+        rows.forEach(r=>{
+          const c0=r?.c?.[0], c1=r?.c?.[1];
+          const data=this.v87ParseDataPlanilhaPTAX(c0?.v,c0?.f);
+          const valor=this.parseNum?.(c1?.v ?? c1?.f ?? 0) || 0;
+          if(!data || !(valor>0)){ ignorados++; return; }
+          this.setPTAXParaData?.(data,valor,'planilha_ptax',{fonte:'Google Sheets · aba PTAX',dataCotacao:data,uso:'sincronização automática'});
+          lidos++;
+        });
+        localStorage.setItem('wOS_ptaxPlanilhaUltimaSync',new Date().toISOString());
+        this.renderizarPTAXHistorico?.();
+        this.v87AtualizarStatusPTAX?.(`Planilha PTAX: ${lidos} data${lidos===1?'':'s'} sincronizada${lidos===1?'':'s'}.`,'ok');
+        if(!silencioso) this.toast?.(`PTAX da planilha atualizada: ${lidos} data${lidos===1?'':'s'}.`, lidos?'success':'warning');
+        return {lidos,ignorados};
+      }catch(e){
+        this.v87AtualizarStatusPTAX?.('Aba PTAX não sincronizada.','warn');
+        if(!silencioso) this.toast?.(e.message || 'Erro ao consultar a aba PTAX.','warning',6000);
+        return {lidos:0,ignorados:0,erro:e.message};
+      }
+    };
+
+    A.v87DataISODeslocada = function(iso,delta){
+      const d=new Date(String(iso||'')+'T12:00:00');
+      if(isNaN(d.getTime())) return iso;
+      d.setDate(d.getDate()+delta);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+
+    A.v87BuscarPTAXAtualBCB = async function(opcoes={}){
+      const silencioso = opcoes?.silencioso !== false;
+      const agora=new Date();
+      const hoje=`${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
+      for(let i=0;i<8;i++){
+        const data=this.v87DataISODeslocada(hoje,-i);
+        const valor=await this.buscarPTAXBCB?.(data);
+        if(valor>0){
+          this.setPTAXParaData?.(data,valor,'bcb_atualizacao_automatica',{fonte:'Banco Central do Brasil · PTAX venda',dataCotacao:data,uso:'atualização automática'});
+          localStorage.setItem('wOS_ptaxBCBUltimaSync',new Date().toISOString());
+          this.renderizarPTAXHistorico?.();
+          this.v87AtualizarStatusPTAX?.(`BCB: última PTAX disponível em ${isoToBR(data)}.`,'ok');
+          if(!silencioso) this.toast?.(`PTAX do Banco Central atualizada (${isoToBR(data)}).`,'success');
+          return {valor,data};
+        }
+      }
+      this.v87AtualizarStatusPTAX?.('BCB: nenhuma PTAX recente retornada.','warn');
+      if(!silencioso) this.toast?.('O Banco Central não retornou uma PTAX recente.','warning');
+      return {valor:0,data:''};
+    };
+
+    A.v87SincronizarPTAXFontes = async function(opcoes={}){
+      const silencioso = opcoes?.silencioso !== false;
+      const planilha = await this.v87BuscarPTAXPlanilha({silencioso:true});
+      const bcb = await this.v87BuscarPTAXAtualBCB({silencioso:true});
+      if(!silencioso){
+        const partes=[];
+        if(planilha?.lidos) partes.push(`${planilha.lidos} datas da planilha`);
+        if(bcb?.valor) partes.push(`BCB ${isoToBR(bcb.data)}`);
+        this.toast?.(partes.length ? `PTAX sincronizada: ${partes.join(' · ')}.` : 'Nenhuma PTAX nova foi encontrada.','info',4500);
+      }
+      return {planilha,bcb};
+    };
+
+    A.v87AtualizarStatusPTAX = function(texto,tipo=''){
+      const el=document.getElementById('v87PtaxSyncStatus');
+      if(!el) return;
+      el.innerHTML=`<i class="ph ${tipo==='ok'?'ph-check-circle':'ph-info'}"></i>${esc(this,texto)}`;
+    };
+
+    A.v87InjetarAjudaPTAX = function(){
+      const input=document.getElementById('inputBrapi');
+      const fonteCard=input?.closest('.card');
+      if(fonteCard && !document.getElementById('v87PtaxSheetHelp')){
+        const help=document.createElement('div');
+        help.id='v87PtaxSheetHelp';
+        help.className='info-box v87-ptax-help';
+        help.innerHTML='<strong>PTAX automática:</strong> na mesma planilha, crie uma aba chamada <strong>PTAX</strong>. Use <strong>Data</strong> na coluna A e <strong>PTAX</strong> na coluna B, com os cabeçalhos na linha 1. Ao sincronizar cotações, o sistema lê essa aba e também consulta a PTAX oficial do Banco Central.';
+        input.closest('.f-group')?.insertAdjacentElement('afterend',help);
+      }
+      const ptaxInput=document.getElementById('ptaxDataInput');
+      const ptaxCard=ptaxInput?.closest('.card');
+      if(ptaxCard && !document.getElementById('v87BtnSyncPTAX')){
+        const actions=ptaxCard.querySelector('div[style*="flex-wrap"]');
+        if(actions){
+          const btn=document.createElement('button');
+          btn.id='v87BtnSyncPTAX'; btn.className='btn btn-outline';
+          btn.innerHTML='<i class="ph ph-arrows-clockwise"></i> Sincronizar BCB + planilha';
+          btn.onclick=()=>this.v87SincronizarPTAXFontes?.({silencioso:false});
+          actions.appendChild(btn);
+        }
+        const st=document.createElement('div');
+        st.id='v87PtaxSyncStatus'; st.className='v87-ptax-status';
+        st.innerHTML='<i class="ph ph-info"></i>A PTAX é atualizada ao sincronizar as cotações e antes de ler extratos do exterior.';
+        ptaxCard.appendChild(st);
+      }
+      const card=document.getElementById('rendaPdfImportCard');
+      const info=card?.querySelector('.info-box');
+      if(info && !info.__v87Text){
+        info.innerHTML='Lê extratos mensais da <strong>B3</strong>, <strong>Avenue</strong> e <strong>Nomad</strong>. A conferência mostra o valor do extrato, o valor reconhecido e a diferença antes da confirmação. No exterior, a PTAX é procurada primeiro na aba <strong>PTAX</strong> da planilha e depois no Banco Central.';
+        info.__v87Text=true;
+      }
+    };
+
+    const oldBuscarCotacoes=A.buscarCotacoes?.bind(A);
+    if(oldBuscarCotacoes){
+      A.buscarCotacoes=function(){
+        const ret=oldBuscarCotacoes(...arguments);
+        this.v87SincronizarPTAXFontes?.({silencioso:true});
+        return ret;
+      };
+    }
+
+    A.v87ParseRendaAvenueMensal = function(texto,fileName=''){
+      const clean=normTxt(texto);
+      let ano=0,mes=0;
+      const mRef=clean.match(/\b([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})\s*-\s*([A-Za-z]+)\s+\d{1,2},\s*(20\d{2})/i);
+      if(mRef){ mes=(this.v79MesInglesParaNumero?.(mRef[3]||mRef[1])||0); ano=parseInt(mRef[4]||mRef[2],10); }
+      if(!(mes&&ano)){ const fd=clean.match(/\b(\d{2})\/(\d{2})\/(20\d{2})\b/); if(fd){mes=parseInt(fd[2],10);ano=parseInt(fd[3],10);} }
+      if(!(mes&&ano)) throw new Error('Não consegui identificar o mês de referência do extrato Avenue.');
+      const start=clean.search(/DIVIDENDS\s+AND\s+INTEREST/i);
+      if(start<0) throw new Error('Não encontrei a seção “DIVIDENDS AND INTEREST” no extrato Avenue.');
+      const after=clean.slice(start);
+      const totalLinha=after.match(/Total\s+Dividends\s+And\s+Interest\s*\$\s*([\d,]+(?:\.\d{2}))\s*\$\s*([\d,]+(?:\.\d{2}))/i);
+      const end=totalLinha && typeof totalLinha.index==='number' ? totalLinha.index+totalLinha[0].length : after.length;
+      const block=after.slice(0,end);
+      const grupos={}; let linhasCredito=0,linhasImposto=0;
+      const re=/\bDIVIDEND\s+(\d{2}\/\d{2}\/20\d{2})\s+C\s+(Credito\s+dividendos|Retencao\s+Impostos?\s+sobre\s+Dividendos?)\s+([A-Z][A-Z0-9.]{0,9})\s+\$\s*([\d,]+(?:\.\d{2}))/gi;
+      let m;
+      while((m=re.exec(block))!==null){
+        const dataBR=m[1], data=brToIso(dataBR), tipo=/RETENCAO/i.test(m[2])?'IMPOSTO':'CREDITO', ticker=String(m[3]||'').toUpperCase(), valor=parseUSD(m[4]);
+        if(!data||!ticker||!(valor>0)) continue;
+        const key=`${data}|${ticker}`;
+        grupos[key]=grupos[key]||{ticker,data,dataBR,evento:'Dividendo Avenue',creditoUSD:0,impostoUSD:0,liquidoUSD:0,valorLiquido:0,ptax:0,ptaxData:data,linhasCredito:0,linhasImposto:0};
+        if(tipo==='IMPOSTO'){grupos[key].impostoUSD+=valor;grupos[key].linhasImposto++;linhasImposto++;}
+        else{grupos[key].creditoUSD+=valor;grupos[key].linhasCredito++;linhasCredito++;}
+      }
+      const itens=Object.values(grupos).map(i=>{i.creditoUSD=round2(i.creditoUSD);i.impostoUSD=round2(i.impostoUSD);i.liquidoUSD=round2(i.creditoUSD-i.impostoUSD);i.quantidade=0;i.precoUnitario=i.liquidoUSD;return i;}).sort((a,b)=>a.data.localeCompare(b.data)||a.ticker.localeCompare(b.ticker));
+      if(!itens.length) throw new Error('A seção Avenue foi encontrada, mas nenhum crédito/retenção de dividendos foi reconhecido.');
+      const totalUSDBruto=round2(itens.reduce((s,i)=>s+i.creditoUSD,0));
+      const totalUSDImposto=round2(itens.reduce((s,i)=>s+i.impostoUSD,0));
+      const totalUSDLiquido=round2(totalUSDBruto-totalUSDImposto);
+      const totalUSDImpostoPDF=totalLinha?parseUSD(totalLinha[1]):parseUSD((clean.match(/Non-resident\s+tax\s+paid\s*\$\s*([\d,]+(?:\.\d{2}))/i)||[])[1]);
+      const totalUSDBrutoPDF=totalLinha?parseUSD(totalLinha[2]):parseUSD((clean.match(/Taxable\s+dividends\s*\$\s*([\d,]+(?:\.\d{2}))/i)||[])[1]);
+      const totalUSDLiquidoPDF=round2(totalUSDBrutoPDF-totalUSDImpostoPDF);
+      const porAtivo={};
+      itens.forEach(i=>{ const a=porAtivo[i.ticker]=porAtivo[i.ticker]||{ticker:i.ticker,total:0,totalUSDLiquido:0,totalUSDBruto:0,totalUSDImposto:0,eventos:0,linhasCredito:0,linhasImposto:0,ptaxDatas:[],itens:[]}; a.totalUSDLiquido+=i.liquidoUSD;a.totalUSDBruto+=i.creditoUSD;a.totalUSDImposto+=i.impostoUSD;a.eventos++;a.linhasCredito+=i.linhasCredito;a.linhasImposto+=i.linhasImposto;a.itens.push(i); });
+      Object.values(porAtivo).forEach(a=>{a.totalUSDLiquido=round2(a.totalUSDLiquido);a.totalUSDBruto=round2(a.totalUSDBruto);a.totalUSDImposto=round2(a.totalUSDImposto);});
+      const payload={modelo:'AVENUE_MENSAL',corretora:'AVENUE',arquivo:fileName,ano,mes,itens,porAtivo,total:0,totalPDF:0,totalUSDLiquido,totalUSDBruto,totalUSDImposto,totalUSDLiquidoPDF,totalUSDBrutoPDF,totalUSDImpostoPDF,divergenciaUSDBruto:round2(totalUSDBruto-totalUSDBrutoPDF),divergenciaUSDImposto:round2(totalUSDImposto-totalUSDImpostoPDF),divergenciaUSDLiquido:round2(totalUSDLiquido-totalUSDLiquidoPDF),linhasCredito,linhasImposto,ptaxPendente:[...new Set(itens.map(i=>i.data))]};
+      payload.hash=`AVENUE|${ano}-${String(mes).padStart(2,'0')}|${totalUSDBruto.toFixed(2)}|${totalUSDImposto.toFixed(2)}|`+itens.map(i=>`${i.data}:${i.ticker}:${i.creditoUSD.toFixed(2)}:${i.impostoUSD.toFixed(2)}`).join('|');
+      return payload;
+    };
+    A.v80ParseRendaAvenueMensal=A.v87ParseRendaAvenueMensal;
+    A.v79ParseRendaAvenueMensal=A.v87ParseRendaAvenueMensal;
+
+    A.v87ParseRendaNomadMensal = function(texto,fileName=''){
+      const clean=normTxt(texto); let ano=0,mes=0;
+      const fn=String(fileName||'').match(/monthly[_\-\s]*statement[_\-\s]*(20\d{2})[_\-\s]*(\d{2})[_\-\s]*(\d{2})/i);
+      if(fn){ano=parseInt(fn[1],10);mes=parseInt(fn[2],10);}
+      if(!(ano&&mes)){const d=clean.match(/\b(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\b/i);if(d){ano=parseInt(d[1],10);mes=parseInt(d[2],10);}}
+      if(!(ano&&mes)) throw new Error('Não consegui identificar o mês de referência do extrato Nomad.');
+      const totalResumo=parseUSD((clean.match(/INCOME\s+AND\s+EXPENSE\s+SUMMARY[\s\S]{0,700}?Dividends\s+([\d,]+(?:\.\d{2}))/i)||[])[1]);
+      const chunks=clean.split(/(?=\b20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b)/i).filter(x=>/^20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b/i.test(x));
+      const itens=[];
+      chunks.forEach(chunk=>{
+        let c=normTxt(chunk).split(/\s+Page\s+\d+\s+of\s+\d+/i)[0];
+        c=c.split(/\s+20\d{2}-\d{2}-\d{2}\s+(?:SWEEP|STOCK_SPLIT|CASH_IN_LIEU|INTEREST|FEE|TRANSFER|JOURNAL|QUALIFIED_DIVIDEND|DIVIDEND)\b/i)[0];
+        const d=c.match(/^(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\s+/i); if(!d) return;
+        const tail=c.match(/\b([A-Z.]{1,10})\s+((?=[A-Z0-9]*\d)[A-Z0-9]{9})\s+0\.00\s+(-?[\d,]+(?:\.\d{2}))\s+0\.00\b/); if(!tail) return;
+        const ticker=String(tail[1]||'').toUpperCase(), cusip=tail[2], bruto=round2(parseUSD(tail[3])); if(!ticker||!(bruto>0)) return;
+        const taxMatch=c.match(/With\s+([\d.]+)%\s+NON/i); const taxPct=taxMatch?(parseFloat(taxMatch[1])||0):0;
+        const imposto=round2(bruto*taxPct/100), liquido=round2(bruto-imposto);
+        const rq=c.match(/(?:Cash\s+Div\s+of\s+)?([\d.]+)\s+on\s+([\d.]+)\s+shs/i);
+        let nome=c.slice(d[0].length,tail.index).replace(/\s*Cash\s+Div(?:idend)?(?:\s+of)?[\s\S]*$/i,'').trim()||ticker;
+        const data=`${d[1]}-${d[2]}-${d[3]}`;
+        itens.push({ticker,nome,cusip,data,dataBR:isoToBR(data),dataLancamento:data,dataLancamentoBR:isoToBR(data),evento:'Dividendo Nomad',quantidade:rq?parseUSD(rq[2]):0,dividendoPorAcao:rq?parseUSD(rq[1]):0,creditoUSD:bruto,impostoUSD:imposto,liquidoUSD:liquido,impostoPct:taxPct,retencaoInferida:taxPct>0,valorLiquido:0,precoUnitario:liquido,ptax:0,ptaxData:data,linhasCredito:1,linhasImposto:taxPct>0?1:0});
+      });
+      if(!itens.length){ if(totalResumo>0) throw new Error('O extrato Nomad tem dividendos no resumo, mas as linhas CASH_DIVIDEND não foram reconhecidas.'); return {modelo:'NOMAD_MENSAL',corretora:'NOMAD',arquivo:fileName,ano,mes,itens:[],porAtivo:{},total:0,totalPDF:0,totalUSDLiquido:0,totalUSDBruto:0,totalUSDImposto:0,totalUSDLiquidoPDF:totalResumo||0,aviso:'Sem dividendos no período.',ptaxPendente:[]}; }
+      itens.sort((a,b)=>a.data.localeCompare(b.data)||a.ticker.localeCompare(b.ticker));
+      const totalUSDBruto=round2(itens.reduce((s,i)=>s+i.creditoUSD,0)), totalUSDImposto=round2(itens.reduce((s,i)=>s+i.impostoUSD,0)), totalUSDLiquido=round2(itens.reduce((s,i)=>s+i.liquidoUSD,0));
+      const porAtivo={};
+      itens.forEach(i=>{const a=porAtivo[i.ticker]=porAtivo[i.ticker]||{ticker:i.ticker,total:0,totalUSDLiquido:0,totalUSDBruto:0,totalUSDImposto:0,eventos:0,linhasCredito:0,linhasImposto:0,ptaxDatas:[],itens:[]};a.totalUSDLiquido+=i.liquidoUSD;a.totalUSDBruto+=i.creditoUSD;a.totalUSDImposto+=i.impostoUSD;a.eventos++;a.linhasCredito++;a.linhasImposto+=i.linhasImposto;a.itens.push(i);});
+      Object.values(porAtivo).forEach(a=>{a.totalUSDLiquido=round2(a.totalUSDLiquido);a.totalUSDBruto=round2(a.totalUSDBruto);a.totalUSDImposto=round2(a.totalUSDImposto);});
+      const payload={modelo:'NOMAD_MENSAL',corretora:'NOMAD',arquivo:fileName,ano,mes,itens,porAtivo,total:0,totalPDF:0,totalUSDLiquido,totalUSDBruto,totalUSDImposto,totalUSDLiquidoPDF:totalResumo||0,totalUSDBrutoPDF:0,totalUSDImpostoPDF:0,divergenciaUSDLiquido:totalResumo?round2(totalUSDLiquido-totalResumo):0,linhasCredito:itens.length,linhasImposto:itens.reduce((s,i)=>s+i.linhasImposto,0),ptaxPendente:[...new Set(itens.map(i=>i.data))]};
+      payload.hash=`NOMAD|${ano}-${String(mes).padStart(2,'0')}|${totalUSDBruto.toFixed(2)}|${totalUSDImposto.toFixed(2)}|${totalUSDLiquido.toFixed(2)}|`+itens.map(i=>`${i.data}:${i.ticker}:${i.creditoUSD.toFixed(2)}:${i.impostoUSD.toFixed(2)}`).join('|');
+      return payload;
+    };
+    A.v82ParseRendaNomadMensal=A.v87ParseRendaNomadMensal;
+
+    const oldParser=A.v78ParserRendaPDF?.bind(A);
+    A.v78ParserRendaPDF=function(texto,fileName=''){
+      const modelo=this.v78DetectarModeloRendaPDF?.(texto,fileName);
+      if(modelo==='AVENUE_MENSAL') return this.v87ParseRendaAvenueMensal(texto,fileName);
+      if(modelo==='NOMAD_MENSAL') return this.v87ParseRendaNomadMensal(texto,fileName);
+      return oldParser ? oldParser(texto,fileName) : (()=>{throw new Error('Modelo de relatório não reconhecido.');})();
+    };
+
+    A.v87ComparacaoLinha = function(rotulo,pdf,reconhecido,moeda='USD',temPDF=true){
+      const diff=round2(Number(reconhecido||0)-Number(pdf||0));
+      const f=moeda==='BRL' ? (v=>this.fmt?.(v)||String(v)) : fmtUSD;
+      return `<tr><td><strong>${esc(this,rotulo)}</strong></td><td style="font-family:var(--font-mono)">${temPDF?f(pdf):'—'}</td><td style="font-family:var(--font-mono);font-weight:700">${f(reconhecido)}</td><td class="${temPDF?diffClass(diff):''}" style="font-family:var(--font-mono)">${temPDF?(moeda==='BRL'?(diff>=0?'+':'-')+(this.fmt?.(Math.abs(diff))||Math.abs(diff)):diffTextUSD(diff)):'não disponível no PDF'}</td><td>${temPDF?(Math.abs(diff)<=0.01?'<span class="badge b-buy">Confere</span>':'<span class="badge b-hold">Revisar</span>'):'<span class="badge">Informativo</span>'}</td></tr>`;
+    };
+
+    A.v87RenderPreviewExterior = function(p,atual,futuro,dup){
+      const box=document.getElementById('rendaPdfPreview'); const btn=document.getElementById('btnConfirmarRendaPDF'); if(!box) return;
+      const isAve=p.modelo==='AVENUE_MENSAL', pend=(p.ptaxPendente||[]).length;
+      if(btn) btn.disabled=!!pend;
+      const pdfNet=Number(p.totalUSDLiquidoPDF||0), hasNet=pdfNet>0;
+      const netDiff=hasNet?round2((p.totalUSDLiquido||0)-pdfNet):0;
+      const geralOk=hasNet?Math.abs(netDiff)<=0.01:true;
+      const comparacoes=isAve
+        ? this.v87ComparacaoLinha('Créditos de dividendos',p.totalUSDBrutoPDF||0,p.totalUSDBruto||0,'USD',Number(p.totalUSDBrutoPDF||0)>0)+this.v87ComparacaoLinha('Impostos retidos',p.totalUSDImpostoPDF||0,p.totalUSDImposto||0,'USD',Number(p.totalUSDImpostoPDF||0)>0)+this.v87ComparacaoLinha('Líquido em USD',p.totalUSDLiquidoPDF||0,p.totalUSDLiquido||0,'USD',hasNet)
+        : this.v87ComparacaoLinha('Dividendos líquidos do resumo',p.totalUSDLiquidoPDF||0,p.totalUSDLiquido||0,'USD',hasNet)+this.v87ComparacaoLinha('Crédito bruto calculado',0,p.totalUSDBruto||0,'USD',false)+this.v87ComparacaoLinha('Retenção calculada',0,p.totalUSDImposto||0,'USD',false);
+      const porAtivo=Object.values(p.porAtivo||{}).sort((a,b)=>(b.total||0)-(a.total||0));
+      const linhas=porAtivo.map(a=>`<tr><td><strong>${esc(this,a.ticker)}</strong></td><td>${fmtUSD(a.totalUSDBruto||0)}</td><td>${fmtUSD(a.totalUSDImposto||0)}</td><td style="font-weight:700">${fmtUSD(a.totalUSDLiquido||0)}</td><td>${this.fmt?.(a.total||0)||a.total}</td><td>${a.eventos||0}</td></tr>`).join('');
+      const eventos=(p.itens||[]).map(i=>{const status=isAve?(i.linhasCredito&&i.linhasImposto?'<span class="badge b-buy">Crédito + imposto</span>':i.linhasCredito?'<span class="badge b-hold">Só crédito</span>':'<span class="badge b-hold">Só imposto</span>'):(i.retencaoInferida?`<span class="badge b-buy">${this.fmtN?.(i.impostoPct||0,2)||i.impostoPct}% aplicado</span>`:'<span class="badge">Sem retenção</span>');return `<tr><td>${esc(this,i.dataBR||'')}</td><td><strong>${esc(this,i.ticker)}</strong></td><td>${fmtUSD(i.creditoUSD||0)}</td><td>${fmtUSD(i.impostoUSD||0)}</td><td style="font-weight:700">${fmtUSD(i.liquidoUSD||0)}</td><td>${i.ptax>0?this.fmtN?.(i.ptax,4)||i.ptax:'<span class="badge b-sell">Pendente</span>'}</td><td>${this.fmt?.(i.valorLiquido||0)||i.valorLiquido}</td><td>${status}</td></tr>`;}).join('');
+      box.innerHTML=`
+        <div class="v87-audit-grid">
+          <div class="v87-audit-card"><span>Origem e referência</span><strong>${isAve?'Avenue':'Nomad'} · ${String(p.mes).padStart(2,'0')}/${p.ano}</strong></div>
+          <div class="v87-audit-card ${geralOk?'v87-ok':'v87-warn'}"><span>Total líquido no extrato</span><strong>${hasNet?fmtUSD(pdfNet):'Não localizado'}</strong></div>
+          <div class="v87-audit-card ${geralOk?'v87-ok':'v87-warn'}"><span>Total líquido reconhecido</span><strong>${fmtUSD(p.totalUSDLiquido||0)}</strong></div>
+          <div class="v87-audit-card ${geralOk?'v87-ok':'v87-warn'}"><span>Diferença da conferência</span><strong class="${diffClass(netDiff)}">${hasNet?diffTextUSD(netDiff):'Sem total comparável'}</strong></div>
+          <div class="v87-audit-card"><span>Total convertido para lançar</span><strong>${this.fmt?.(p.total||0)||p.total}</strong></div>
+          <div class="v87-audit-card"><span>Ativos e eventos reconhecidos</span><strong>${porAtivo.length} ativos · ${(p.itens||[]).length} eventos</strong></div>
+          <div class="v87-audit-card ${pend?'v87-warn':'v87-ok'}"><span>Situação da PTAX</span><strong>${pend?`${pend} data(s) pendente(s)`:'Todas as datas preenchidas'}</strong></div>
+          <div class="v87-audit-card"><span>Campo mensal após confirmar</span><strong>${this.fmt?.(atual)||atual} → ${this.fmt?.(futuro)||futuro}</strong></div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:14px"><table class="v87-check-table"><thead><tr><th>Conferência rápida</th><th>No PDF</th><th>Reconhecido</th><th>Diferença</th><th>Status</th></tr></thead><tbody>${comparacoes}</tbody></table></div>
+        ${pend?`<div class="warn-box"><strong>PTAX pendente:</strong> ${esc(this,(p.ptaxPendente||[]).join(', '))}. Preencha a aba PTAX ou use a sincronização com o Banco Central antes de confirmar.</div>`:''}
+        ${dup?'<div class="warn-box"><strong>Atenção:</strong> uma importação aparentemente igual já está no histórico. Confirmar novamente somará o valor outra vez.</div>':''}
+        <div class="grid-2" style="margin-bottom:0">
+          <div><div class="mini-note" style="margin-bottom:8px">Resumo por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Bruto USD</th><th>Retenção</th><th>Líquido USD</th><th>Líquido R$</th><th>Eventos</th></tr></thead><tbody>${linhas||'<tr><td colspan="6">Sem eventos.</td></tr>'}</tbody></table></div></div>
+          <div><div class="mini-note" style="margin-bottom:8px">Linhas reconhecidas no extrato</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Bruto</th><th>Retenção</th><th>Líquido USD</th><th>PTAX</th><th>Líquido R$</th><th>Conferência</th></tr></thead><tbody>${eventos||'<tr><td colspan="8">Sem eventos.</td></tr>'}</tbody></table></div></div>
+        </div>`;
+    };
+
+    A.v87RenderPreviewB3 = function(p,atual,futuro,dup){
+      const box=document.getElementById('rendaPdfPreview'); const btn=document.getElementById('btnConfirmarRendaPDF'); if(!box) return; if(btn) btn.disabled=false;
+      const hasPDF=Number(p.totalPDF||0)>0, diff=hasPDF?round2((p.total||0)-(p.totalPDF||0)):0, ok=!hasPDF||Math.abs(diff)<=0.01;
+      const porAtivo=Object.values(p.porAtivo||{}).sort((a,b)=>(b.total||0)-(a.total||0));
+      const linhas=porAtivo.map(a=>`<tr><td><strong>${esc(this,a.ticker)}</strong></td><td style="font-weight:700">${this.fmt?.(a.total||0)||a.total}</td><td>${a.eventos||0}</td><td class="mini-note">${esc(this,[...new Set((a.itens||[]).map(i=>i.evento))].join(' · '))}</td></tr>`).join('');
+      const eventos=(p.itens||[]).map(i=>`<tr><td>${esc(this,i.dataBR||'')}</td><td><strong>${esc(this,i.ticker)}</strong></td><td>${esc(this,i.evento||'')}</td><td>${this.fmtN?.(i.quantidade||0,2)||i.quantidade}</td><td>${this.fmt?.(i.precoUnitario||0)||i.precoUnitario}</td><td style="font-weight:700">${this.fmt?.(i.valorLiquido||0)||i.valorLiquido}</td></tr>`).join('');
+      box.innerHTML=`
+        <div class="v87-audit-grid">
+          <div class="v87-audit-card"><span>Origem e referência</span><strong>B3 · ${String(p.mes).padStart(2,'0')}/${p.ano}</strong></div>
+          <div class="v87-audit-card ${ok?'v87-ok':'v87-warn'}"><span>Total exibido no relatório</span><strong>${hasPDF?(this.fmt?.(p.totalPDF)||p.totalPDF):'Não localizado'}</strong></div>
+          <div class="v87-audit-card ${ok?'v87-ok':'v87-warn'}"><span>Total reconhecido</span><strong>${this.fmt?.(p.total||0)||p.total}</strong></div>
+          <div class="v87-audit-card ${ok?'v87-ok':'v87-warn'}"><span>Diferença da conferência</span><strong class="${diffClass(diff)}">${hasPDF?((diff>=0?'+':'-')+(this.fmt?.(Math.abs(diff))||Math.abs(diff))):'Sem total comparável'}</strong></div>
+          <div class="v87-audit-card"><span>Ativos e eventos</span><strong>${porAtivo.length} ativos · ${(p.itens||[]).length} eventos</strong></div>
+          <div class="v87-audit-card"><span>Campo mensal após confirmar</span><strong>${this.fmt?.(atual)||atual} → ${this.fmt?.(futuro)||futuro}</strong></div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:14px"><table class="v87-check-table"><thead><tr><th>Conferência rápida</th><th>No PDF</th><th>Reconhecido</th><th>Diferença</th><th>Status</th></tr></thead><tbody>${this.v87ComparacaoLinha('Total líquido de proventos',p.totalPDF||0,p.total||0,'BRL',hasPDF)}</tbody></table></div>
+        ${dup?'<div class="warn-box"><strong>Atenção:</strong> uma importação aparentemente igual já está no histórico. Confirmar novamente somará o valor outra vez.</div>':''}
+        <div class="grid-2" style="margin-bottom:0"><div><div class="mini-note" style="margin-bottom:8px">Resumo por ativo</div><div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Total líquido</th><th>Eventos</th><th>Tipos</th></tr></thead><tbody>${linhas||'<tr><td colspan="4">Sem proventos.</td></tr>'}</tbody></table></div></div><div><div class="mini-note" style="margin-bottom:8px">Eventos reconhecidos</div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo</th><th>Evento</th><th>Qtd.</th><th>Unit.</th><th>Líquido</th></tr></thead><tbody>${eventos||'<tr><td colspan="6">Sem eventos.</td></tr>'}</tbody></table></div></div></div>`;
+    };
+
+    const oldPreview=A.v78RenderPreviewRendaPDF?.bind(A);
+    A.v78RenderPreviewRendaPDF=function(){
+      const p=this.s?.pendingRendaPDF;
+      if(!p || p.erro) return oldPreview ? oldPreview(...arguments) : undefined;
+      const hist=this.v78EnsureRendaPDFState?.()||[];
+      const dup=hist.find(h=>h.hash&&h.hash===p.hash);
+      const atual=this.parseNum?.(this.getRendaManualMes(p.ano,p.mes).dividendos||0)||0;
+      const futuro=atual+(this.parseNum?.(p.total||0)||0);
+      if(p.modelo==='AVENUE_MENSAL'||p.modelo==='NOMAD_MENSAL') return this.v87RenderPreviewExterior(p,atual,futuro,dup);
+      if(p.modelo==='B3_MENSAL') return this.v87RenderPreviewB3(p,atual,futuro,dup);
+      return oldPreview ? oldPreview(...arguments) : undefined;
+    };
+
+    const oldProcessar=A.processarRendaPDF?.bind(A);
+    if(oldProcessar){
+      A.processarRendaPDF=async function(evt){
+        await this.v87BuscarPTAXPlanilha?.({silencioso:true});
+        return oldProcessar(evt);
+      };
+    }
+
+    const oldRenderRenda=A.renderizarRenda?.bind(A);
+    if(oldRenderRenda){
+      A.renderizarRenda=function(){const ret=oldRenderRenda(...arguments);setTimeout(()=>this.v87InjetarAjudaPTAX?.(),0);return ret;};
+    }
+    const oldNavigate=A.navigate?.bind(A);
+    if(oldNavigate){
+      A.navigate=function(viewId,el){const ret=oldNavigate(viewId,el);setTimeout(()=>this.v87InjetarAjudaPTAX?.(),50);return ret;};
+    }
+
+    A.v87InjetarAjudaPTAX?.();
+    [250,800,1700,3200].forEach(ms=>setTimeout(()=>A.v87InjetarAjudaPTAX?.(),ms));
+  }
+  installV87();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(installV87,60));
+  window.addEventListener('load',()=>setTimeout(installV87,120));
+})();
+</script>
+
+<!-- Ajuste solicitado: PTAX com fallback e conferência mensal B3/Avenue/Nomad -->
+<style id="v88-ptax-conferencia-style">
+.v88-monthly-wrap{margin:14px 0;border:1px solid var(--border);border-radius:12px;padding:13px;background:var(--surface-2,rgba(255,255,255,.02));}
+.v88-monthly-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px;flex-wrap:wrap;}
+.v88-monthly-title{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:14px;font-weight:800;}
+.v88-monthly-title i{color:var(--primary);font-size:18px;}
+.v88-month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;}
+.v88-month-card{appearance:none;width:100%;border:1px solid var(--border);border-radius:11px;padding:11px;background:var(--bg-card);color:var(--text);cursor:pointer;text-align:left;transition:.16s ease;}
+.v88-month-card:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:0 7px 18px rgba(0,0,0,.12);}
+.v88-month-card.v88-complete{border-color:color-mix(in srgb,var(--success) 58%,var(--border));background:var(--success-glow);}
+.v88-month-card.v88-partial{border-color:color-mix(in srgb,var(--warning) 48%,var(--border));}
+.v88-month-card-top{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:9px;}
+.v88-month-card-top strong{font-size:14px;}
+.v88-month-count{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:999px;padding:3px 7px;font-size:10px;font-weight:900;white-space:nowrap;}
+.v88-complete .v88-month-count{border-color:color-mix(in srgb,var(--success) 65%,var(--border));color:var(--success);}
+.v88-month-sources{display:flex;gap:5px;flex-wrap:wrap;}
+.v88-source-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:999px;padding:3px 7px;font-size:10px;color:var(--text-muted);font-weight:800;}
+.v88-source-pill.v88-ok{color:var(--success);border-color:color-mix(in srgb,var(--success) 45%,var(--border));}
+.v88-source-pill i{font-size:12px;}
+.v88-modal-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0 14px;}
+.v88-modal-summary-card{border:1px solid var(--border);border-radius:11px;padding:11px;background:var(--bg-card);}
+.v88-modal-summary-card.v88-ok{border-color:color-mix(in srgb,var(--success) 55%,var(--border));background:var(--success-glow);}
+.v88-modal-summary-card span{display:block;font-size:10px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;font-weight:800;}
+.v88-modal-summary-card strong{display:block;font-size:14px;line-height:1.25;}
+.v88-source-detail{border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:9px;background:var(--bg-card);}
+.v88-source-detail.v88-ok{border-color:color-mix(in srgb,var(--success) 50%,var(--border));}
+.v88-source-detail-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.v88-source-detail-title{display:flex;align-items:center;gap:7px;font-weight:900;}
+.v88-import-record{border-top:1px solid var(--border);padding-top:9px;margin-top:9px;display:grid;grid-template-columns:minmax(150px,1fr) minmax(110px,.55fr) minmax(130px,.75fr);gap:8px;align-items:start;}
+.v88-import-record:first-of-type{border-top:0;padding-top:0;margin-top:0;}
+.v88-import-record strong{overflow-wrap:anywhere;}
+.v88-record-meta{font-size:11px;color:var(--text-muted);line-height:1.4;overflow-wrap:anywhere;}
+.v88-ptax-fallback-info{margin:0 0 14px;}
+@media(max-width:760px){.v88-modal-summary{grid-template-columns:1fr 1fr}.v88-import-record{grid-template-columns:1fr}.v88-month-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.v88-month-grid,.v88-modal-summary{grid-template-columns:1fr}}
+</style>
+<script id="v88-ptax-conferencia-script">
+(function(){
+  function getApp(){ try{ if(window.app) return window.app; if(typeof app !== 'undefined'){ window.app=app; return app; } }catch(e){} return null; }
+  function installV88(){
+    const A=getApp();
+    if(!A || A.__v88PtaxConferenciaInstalled) return;
+    A.__v88PtaxConferenciaInstalled=true;
+    A.VERSAO_SISTEMA='v88_ptax_fallback_conferencia_3_pdfs';
+    document.title='Patrimônio OS · PTAX fallback e conferência mensal';
+
+    const normTxt=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u00ad\ufffe]/g,'').replace(/\s+/g,' ').trim();
+    const round2=v=>Math.round((Number(v||0)+Number.EPSILON)*100)/100;
+    const parseUSD=v=>{let s=String(v||'').trim().replace(/[^\d.,\-]/g,'');if(!s)return 0;if(s.includes('.')&&s.includes(','))s=s.replace(/,/g,'');else if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');return parseFloat(s)||0;};
+    const fmtUSD=v=>'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const isoToBR=iso=>{const m=String(iso||'').match(/^(20\d{2})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(iso||'');};
+    const escHtml=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    const esc=(ctx,s)=>ctx&&typeof ctx.esc==='function'?ctx.esc(s):escHtml(s);
+    const escapeRegex=s=>String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+    A.v88DataISODeslocada=function(iso,delta){
+      if(this.v87DataISODeslocada) return this.v87DataISODeslocada(iso,delta);
+      const d=new Date(String(iso||'')+'T12:00:00'); if(isNaN(d.getTime())) return String(iso||'');
+      d.setDate(d.getDate()+delta);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+
+    A.v88LerPTAXLocal=function(data){
+      const d=this.normData?this.normData(data||''):String(data||'').slice(0,10);
+      const valor=this.getPTAXParaData?.(d)||0;
+      if(!(valor>0)) return null;
+      const meta=(this.s?.ptaxHistoricoMeta||{})[d]||{};
+      return {valor,dataCotacao:meta.dataCotacao||d,origem:meta.origem||'historico',fonte:meta.fonte||'Histórico PTAX'};
+    };
+
+    A.v88SalvarPTAXParaDataSolicitada=function(dataSolicitada,info,uso){
+      if(!info?.valor) return info;
+      const original=this.normData?this.normData(dataSolicitada||''):String(dataSolicitada||'').slice(0,10);
+      const cotacao=this.normData?this.normData(info.dataCotacao||original):String(info.dataCotacao||original).slice(0,10);
+      if(!original||!cotacao) return info;
+      const fallback=cotacao!==original;
+      this.setPTAXParaData?.(original,info.valor,fallback?'ptax_dia_proximo':'ptax_data_exata',{
+        fonte:fallback?`${info.fonte||'PTAX'} · usada por proximidade`:info.fonte||'PTAX',
+        dataCotacao:cotacao,
+        uso:uso||'proventos exterior',
+        observacao:fallback?`Data solicitada ${isoToBR(original)}; cotação utilizada ${isoToBR(cotacao)}.`:''
+      });
+      return {...info,dataSolicitada:original,dataCotacao:cotacao,fallback};
+    };
+
+    A.v88BuscarPTAXComFallback=async function(dataIso,uso='proventos exterior'){
+      const original=this.normData?this.normData(dataIso||''):String(dataIso||'').slice(0,10);
+      if(!original) return {valor:0,dataCotacao:'',origem:'pendente',fallback:false};
+
+      const localExata=this.v88LerPTAXLocal?.(original);
+      if(localExata?.valor>0) return this.v88SalvarPTAXParaDataSolicitada(original,localExata,uso);
+
+      const exataBCB=await this.buscarPTAXBCB?.(original);
+      if(exataBCB>0){
+        this.setPTAXParaData?.(original,exataBCB,'bcb_pdf_renda',{fonte:'Banco Central do Brasil · PTAX venda',dataCotacao:original,uso});
+        return {valor:exataBCB,dataCotacao:original,dataSolicitada:original,origem:'bcb_pdf_renda',fonte:'Banco Central do Brasil · PTAX venda',fallback:false};
+      }
+
+      for(let distancia=1;distancia<=7;distancia++){
+        for(const delta of [-distancia,distancia]){
+          const candidata=this.v88DataISODeslocada(original,delta);
+          const local=this.v88LerPTAXLocal?.(candidata);
+          if(local?.valor>0) return this.v88SalvarPTAXParaDataSolicitada(original,{...local,dataCotacao:local.dataCotacao||candidata},uso);
+
+          const valor=await this.buscarPTAXBCB?.(candidata);
+          if(valor>0){
+            const direcao=delta<0?'dia anterior':'dia seguinte';
+            const fonte=`Banco Central do Brasil · PTAX venda (${direcao})`;
+            this.setPTAXParaData?.(candidata,valor,'bcb_ptax_proxima',{fonte:'Banco Central do Brasil · PTAX venda',dataCotacao:candidata,uso});
+            return this.v88SalvarPTAXParaDataSolicitada(original,{valor,dataCotacao:candidata,origem:'bcb_ptax_proxima',fonte},uso);
+          }
+        }
+      }
+      return {valor:0,dataCotacao:original,dataSolicitada:original,origem:'pendente',fonte:'',fallback:false};
+    };
+
+    A.v80BuscarPTAXBCBExata=function(dataIso){return this.v88BuscarPTAXComFallback(dataIso,'proventos Avenue');};
+    A.v82BuscarPTAXBCBExata=function(dataIso,uso='proventos Nomad'){return this.v88BuscarPTAXComFallback(dataIso,uso);};
+    A.v79BuscarPTAXBCBComFallback=function(dataIso){return this.v88BuscarPTAXComFallback(dataIso,'proventos Avenue');};
+
+    A.v88MarcarFallbackItens=function(p){
+      if(!p||!Array.isArray(p.itens)) return p;
+      p.itens.forEach(i=>{
+        const meta=(this.s?.ptaxHistoricoMeta||{})[i.data]||{};
+        const cotacao=meta.dataCotacao||i.ptaxData||i.data;
+        i.ptaxData=cotacao;
+        i.ptaxFallback=!!(i.ptax>0&&cotacao&&i.data&&cotacao!==i.data);
+        i.ptaxOrigem=meta.origem||i.ptaxOrigem||'';
+        i.ptaxFonte=meta.fonte||i.ptaxFonte||'';
+      });
+      p.ptaxFallbackUsada=p.itens.filter(i=>i.ptaxFallback).map(i=>({data:i.data,dataBR:i.dataBR||isoToBR(i.data),dataCotacao:i.ptaxData,ticker:i.ticker,ptax:i.ptax}));
+      Object.values(p.porAtivo||{}).forEach(a=>{
+        a.ptaxDatas=[];
+        (a.itens||[]).forEach(i=>{
+          const nota=i.ptax>0?`${i.dataBR||isoToBR(i.data)}: ${Number(i.ptax).toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})}${i.ptaxFallback?` (cot. ${isoToBR(i.ptaxData)})`:''}`:`${i.dataBR||isoToBR(i.data)}: pendente`;
+          if(!a.ptaxDatas.includes(nota)) a.ptaxDatas.push(nota);
+        });
+      });
+      return p;
+    };
+
+    const preencherAvenueAnterior=A.v80PreencherPTAXRendaPDF?.bind(A);
+    if(preencherAvenueAnterior){
+      const preencherAvenue=async function(p){const out=await preencherAvenueAnterior(p);return this.v88MarcarFallbackItens(out);};
+      A.v80PreencherPTAXRendaPDF=preencherAvenue;
+      A.v79PreencherPTAXRendaPDF=preencherAvenue;
+    }
+    const preencherNomadAnterior=A.v82PreencherPTAXNomad?.bind(A);
+    if(preencherNomadAnterior){
+      A.v82PreencherPTAXNomad=async function(p){const out=await preencherNomadAnterior(p);return this.v88MarcarFallbackItens(out);};
+    }
+
+    const parserNomadAnterior=A.v87ParseRendaNomadMensal?.bind(A);
+    A.v88ReconciliarNomad=function(texto,fileName='',base=null,erroBase=null){
+      const clean=normTxt(texto);
+      const totalResumo=parseUSD((clean.match(/INCOME\s+AND\s+EXPENSE\s+SUMMARY[\s\S]{0,700}?Dividends\s+([\d,]+(?:\.\d{1,2})?)/i)||[])[1]);
+      const chunks=clean.split(/(?=\b20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b)/i).filter(x=>/^20\d{2}-\d{2}-\d{2}\s+CASH_DIVIDEND\b/i.test(x));
+      let ano=Number(base?.ano||0),mes=Number(base?.mes||0);
+      if(!(ano&&mes)){
+        const fn=String(fileName||'').match(/monthly[_\-\s]*statement[_\-\s]*(20\d{2})[_\-\s]*(\d{2})[_\-\s]*(\d{2})/i);
+        const d=clean.match(/\b(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\b/i);
+        if(fn){ano=Number(fn[1]);mes=Number(fn[2]);}else if(d){ano=Number(d[1]);mes=Number(d[2]);}
+      }
+      const p=base||{modelo:'NOMAD_MENSAL',corretora:'NOMAD',arquivo:fileName,ano,mes,itens:[],porAtivo:{},total:0,totalPDF:0,totalUSDLiquido:0,totalUSDBruto:0,totalUSDImposto:0,totalUSDLiquidoPDF:totalResumo||0,ptaxPendente:[]};
+      p.itens=Array.isArray(p.itens)?p.itens:[];
+      const existentes=new Set(p.itens.map(i=>`${i.data}|${String(i.ticker||'').toUpperCase()}|${Number(i.creditoUSD||0).toFixed(2)}`));
+      const recuperados=[];
+
+      chunks.forEach(chunk=>{
+        let c=normTxt(chunk).split(/\s+Page\s+\d+\s+of\s+\d+/i)[0];
+        c=c.split(/\s+20\d{2}-\d{2}-\d{2}\s+(?:SWEEP|STOCK_SPLIT|CASH_IN_LIEU|INTEREST|FEE|TRANSFER|JOURNAL|QUALIFIED_DIVIDEND|DIVIDEND)\b/i)[0];
+        const d=c.match(/^(20\d{2})-(\d{2})-(\d{2})\s+CASH_DIVIDEND\s+/i); if(!d) return;
+        const data=`${d[1]}-${d[2]}-${d[3]}`;
+        const nome=(c.slice(d[0].length).split(/\s+Cash\s+Div(?:idend)?(?:\s+of)?\b/i)[0]||'').trim();
+        let ticker='',cusip='';
+        const pares=[...c.matchAll(/\b([A-Z.]{1,10})\s+((?=[A-Z0-9]*\d)[A-Z0-9]{9})\b/g)];
+        if(pares.length){ticker=String(pares[pares.length-1][1]||'').toUpperCase();cusip=pares[pares.length-1][2]||'';}
+        if(!ticker&&nome){
+          const mapa=clean.match(new RegExp(escapeRegex(nome)+'\\s+([A-Z.]{1,10})\\s+((?=[A-Z0-9]*\\d)[A-Z0-9]{9})\\b','i'));
+          if(mapa){ticker=String(mapa[1]||'').toUpperCase();cusip=mapa[2]||'';}
+        }
+        const valores=[...c.matchAll(/\b0(?:[.,]0+)?\s+(-?[\d,]+(?:[.,]\d{1,2})?)\s+0(?:[.,]0+)?\b/g)];
+        const bruto=valores.length?round2(parseUSD(valores[valores.length-1][1])):0;
+        if(!ticker||!(bruto>0)) return;
+        const chave=`${data}|${ticker}|${bruto.toFixed(2)}`; if(existentes.has(chave)) return;
+        const taxMatch=c.match(/With\s+([\d.]+)%\s+NON/i),taxPct=taxMatch?(parseFloat(taxMatch[1])||0):0;
+        const imposto=round2(bruto*taxPct/100),liquido=round2(bruto-imposto);
+        const rq=c.match(/(?:Cash\s+Div\s+of\s+)?([\d.]+)\s+on\s+([\d.]+)\s+shs/i);
+        const item={ticker,nome:nome||ticker,cusip,data,dataBR:isoToBR(data),dataLancamento:data,dataLancamentoBR:isoToBR(data),evento:'Dividendo Nomad',quantidade:rq?parseUSD(rq[2]):0,dividendoPorAcao:rq?parseUSD(rq[1]):0,creditoUSD:bruto,impostoUSD:imposto,liquidoUSD:liquido,impostoPct:taxPct,retencaoInferida:taxPct>0,valorLiquido:0,precoUnitario:liquido,ptax:0,ptaxData:data,linhasCredito:1,linhasImposto:taxPct>0?1:0,recuperadoV88:true};
+        p.itens.push(item); recuperados.push(item); existentes.add(chave);
+      });
+
+      if(!p.itens.length){if(erroBase) throw erroBase;throw new Error('O extrato Nomad tem dividendos no resumo, mas as linhas CASH_DIVIDEND não foram reconhecidas.');}
+      p.itens.sort((a,b)=>String(a.data||'').localeCompare(String(b.data||''))||String(a.ticker||'').localeCompare(String(b.ticker||'')));
+      p.totalUSDBruto=round2(p.itens.reduce((s,i)=>s+Number(i.creditoUSD||0),0));
+      p.totalUSDImposto=round2(p.itens.reduce((s,i)=>s+Number(i.impostoUSD||0),0));
+      p.totalUSDLiquido=round2(p.itens.reduce((s,i)=>s+Number(i.liquidoUSD||0),0));
+      p.totalUSDLiquidoPDF=Number(p.totalUSDLiquidoPDF||totalResumo||0);
+      p.divergenciaUSDLiquido=p.totalUSDLiquidoPDF?round2(p.totalUSDLiquido-p.totalUSDLiquidoPDF):0;
+      p.linhasCredito=p.itens.length;
+      p.linhasImposto=p.itens.reduce((s,i)=>s+Number(i.linhasImposto||0),0);
+      p.ptaxPendente=[...new Set(p.itens.map(i=>i.data).filter(Boolean))];
+      p.porAtivo={};
+      p.itens.forEach(i=>{const t=String(i.ticker||'').toUpperCase();const a=p.porAtivo[t]=p.porAtivo[t]||{ticker:t,total:0,totalUSDLiquido:0,totalUSDBruto:0,totalUSDImposto:0,eventos:0,linhasCredito:0,linhasImposto:0,ptaxDatas:[],itens:[]};a.totalUSDLiquido+=i.liquidoUSD||0;a.totalUSDBruto+=i.creditoUSD||0;a.totalUSDImposto+=i.impostoUSD||0;a.eventos++;a.linhasCredito++;a.linhasImposto+=i.linhasImposto||0;a.itens.push(i);});
+      Object.values(p.porAtivo).forEach(a=>{a.totalUSDLiquido=round2(a.totalUSDLiquido);a.totalUSDBruto=round2(a.totalUSDBruto);a.totalUSDImposto=round2(a.totalUSDImposto);});
+      p.v88Recuperados=recuperados.map(i=>`${i.data}|${i.ticker}`);
+      p.hash=`NOMAD|${p.ano}-${String(p.mes).padStart(2,'0')}|${p.totalUSDBruto.toFixed(2)}|${p.totalUSDImposto.toFixed(2)}|${p.totalUSDLiquido.toFixed(2)}|`+p.itens.map(i=>`${i.data}:${i.ticker}:${Number(i.creditoUSD||0).toFixed(2)}:${Number(i.impostoUSD||0).toFixed(2)}`).join('|');
+      return p;
+    };
+
+    if(parserNomadAnterior){
+      A.v87ParseRendaNomadMensal=function(texto,fileName=''){
+        let base=null,erro=null;
+        try{base=parserNomadAnterior(texto,fileName);}catch(e){erro=e;}
+        return this.v88ReconciliarNomad(texto,fileName,base,erro);
+      };
+      A.v82ParseRendaNomadMensal=A.v87ParseRendaNomadMensal;
+    }
+
+    A.v88AnotarFallbackPreview=function(p){
+      const box=document.getElementById('rendaPdfPreview'); if(!box||!p) return;
+      box.querySelector('#v88PtaxFallbackInfo')?.remove();
+      const usados=(p.itens||[]).filter(i=>i.ptaxFallback&&i.ptax>0);
+      if(usados.length){
+        const pares=[...new Set(usados.map(i=>`${i.dataBR||isoToBR(i.data)} → ${isoToBR(i.ptaxData)}`))];
+        const info=document.createElement('div');
+        info.id='v88PtaxFallbackInfo'; info.className='info-box v88-ptax-fallback-info';
+        info.innerHTML=`<strong>PTAX por proximidade:</strong> não havia cotação na data do evento. Foi usada a cotação disponível mais próxima, priorizando o dia anterior: ${esc(this,pares.join(' · '))}.`;
+        box.querySelector('.v87-audit-grid')?.insertAdjacentElement('afterend',info);
+      }
+      const rows=box.querySelectorAll('.grid-2 > div:nth-child(2) tbody tr');
+      (p.itens||[]).forEach((i,idx)=>{
+        if(!i.ptaxFallback||!rows[idx]) return;
+        const td=rows[idx].children?.[5];
+        if(td&&!td.querySelector('.v88-fallback-note')) td.insertAdjacentHTML('beforeend',`<div class="mini-note v88-fallback-note">cotação de ${esc(this,isoToBR(i.ptaxData))}</div>`);
+      });
+    };
+
+    const renderExteriorAnterior=A.v87RenderPreviewExterior?.bind(A);
+    if(renderExteriorAnterior){
+      A.v87RenderPreviewExterior=function(p,atual,futuro,dup){const ret=renderExteriorAnterior(p,atual,futuro,dup);this.v88AnotarFallbackPreview?.(p);return ret;};
+    }
+
+    A.v88OrigemImportacao=function(h){
+      const t=`${h?.modelo||''} ${h?.corretora||''}`.toUpperCase();
+      if(t.includes('AVENUE')) return 'AVENUE';
+      if(t.includes('NOMAD')) return 'NOMAD';
+      if(t.includes('B3')) return 'B3';
+      return '';
+    };
+
+    A.v88ImportacoesMes=function(ano,mes){
+      const grupos={B3:[],AVENUE:[],NOMAD:[]};
+      const hist=this.v78EnsureRendaPDFState?.()||this.s?.rendaImportadaPDF||[];
+      hist.filter(h=>Number(h.ano)===Number(ano)&&Number(h.mes)===Number(mes)).forEach(h=>{const o=this.v88OrigemImportacao(h);if(o)grupos[o].push(h);});
+      Object.values(grupos).forEach(arr=>arr.sort((a,b)=>String(b.confirmadoEm||'').localeCompare(String(a.confirmadoEm||''))));
+      return grupos;
+    };
+
+    A.v88NomeMes=function(mes){return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][Number(mes)-1]||String(mes);};
+
+    A.v88GarantirConferenciaMensal=function(){
+      const card=document.getElementById('rendaPdfImportCard'); if(!card) return null;
+      let wrap=document.getElementById('v88ConferenciaMensal');
+      if(!wrap){
+        wrap=document.createElement('div'); wrap.id='v88ConferenciaMensal'; wrap.className='v88-monthly-wrap';
+        wrap.innerHTML=`<div class="v88-monthly-head"><div><div class="v88-monthly-title"><i class="ph ph-check-square-offset"></i> Conferência mensal dos 3 PDFs</div><div class="mini-note" style="margin-top:3px">Desde jun/2026. Clique em um mês para conferir B3, Avenue e Nomad.</div></div></div><div id="v88MesesGrid" class="v88-month-grid"></div>`;
+        const info=card.querySelector('.info-box');
+        if(info) info.insertAdjacentElement('afterend',wrap); else card.querySelector('#rendaPdfPreview')?.insertAdjacentElement('beforebegin',wrap);
+      }
+      return wrap;
+    };
+
+    A.v88RenderConferenciaMensal=function(){
+      this.v88GarantirConferenciaMensal?.();
+      const grid=document.getElementById('v88MesesGrid'); if(!grid) return;
+      const inicioAno=2026,inicioMes=6,agora=new Date();
+      let fimAno=agora.getFullYear(),fimMes=agora.getMonth()+1;
+      const hist=this.v78EnsureRendaPDFState?.()||this.s?.rendaImportadaPDF||[];
+      hist.forEach(h=>{const y=Number(h.ano),m=Number(h.mes);if(y>fimAno||(y===fimAno&&m>fimMes)){fimAno=y;fimMes=m;}});
+      const meses=[]; let y=inicioAno,m=inicioMes;
+      while(y<fimAno||(y===fimAno&&m<=fimMes)){meses.push({ano:y,mes:m});m++;if(m>12){m=1;y++;}if(meses.length>120)break;}
+      meses.reverse();
+      grid.innerHTML=meses.map(({ano,mes})=>{
+        const g=this.v88ImportacoesMes(ano,mes),okB3=g.B3.length>0,okAve=g.AVENUE.length>0,okNom=g.NOMAD.length>0,total=[okB3,okAve,okNom].filter(Boolean).length,complete=total===3;
+        const pill=(nome,ok)=>`<span class="v88-source-pill ${ok?'v88-ok':''}"><i class="ph ${ok?'ph-check-circle':'ph-circle'}"></i>${nome}</span>`;
+        return `<button type="button" class="v88-month-card ${complete?'v88-complete':total?'v88-partial':''}" onclick="app.v88AbrirConferenciaMes(${ano},${mes})"><div class="v88-month-card-top"><strong>${this.v88NomeMes(mes)}/${ano}</strong><span class="v88-month-count"><i class="ph ${complete?'ph-check-circle':'ph-files'}"></i>${total}/3</span></div><div class="v88-month-sources">${pill('B3',okB3)}${pill('Avenue',okAve)}${pill('Nomad',okNom)}</div></button>`;
+      }).join('');
+    };
+
+    A.v88GarantirModalConferencia=function(){
+      if(document.getElementById('modalConferenciaRendaV88')) return;
+      const overlay=document.createElement('div'); overlay.className='overlay'; overlay.id='modalConferenciaRendaV88';
+      overlay.innerHTML=`<div class="modal" style="max-width:920px;max-height:92vh;overflow:auto"><div class="modal-title"><i class="ph ph-check-square-offset"></i> Conferência mensal dos PDFs</div><div id="v88ModalConferenciaBody"></div><div class="modal-footer"><button class="btn btn-primary" onclick="app.fecharModal('modalConferenciaRendaV88')">Fechar</button></div></div>`;
+      overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('active');});
+      document.body.appendChild(overlay);
+    };
+
+    A.v88AbrirConferenciaMes=function(ano,mes){
+      this.v88GarantirModalConferencia?.();
+      const body=document.getElementById('v88ModalConferenciaBody'); if(!body) return;
+      const g=this.v88ImportacoesMes(ano,mes),fontes=['B3','AVENUE','NOMAD'],total=fontes.filter(f=>g[f].length).length,complete=total===3;
+      const fonteHtml=fontes.map(f=>{
+        const arr=g[f]||[],ok=arr.length>0,nome=f==='AVENUE'?'Avenue':f==='NOMAD'?'Nomad':'B3';
+        const registros=arr.map(h=>{
+          const quando=h.confirmadoEm?new Date(h.confirmadoEm).toLocaleString('pt-BR'):'data não registrada';
+          const usd=f!=='B3'?`<div class="v88-record-meta">Líquido ${fmtUSD(h.totalUSDLiquido||0)} · bruto ${fmtUSD(h.totalUSDBruto||0)} · retenção ${fmtUSD(h.totalUSDImposto||0)}</div>`:'';
+          return `<div class="v88-import-record"><div><strong>${esc(this,h.arquivo||'Arquivo sem nome')}</strong><div class="v88-record-meta">Confirmado em ${esc(this,quando)}</div></div><div><strong>${this.fmt?.(h.total||0)||h.total}</strong>${usd}</div><div class="v88-record-meta">${Number(h.eventos||0)} evento(s) reconhecido(s)${arr.length>1?` · ${arr.length} importações desta origem no mês`:''}</div></div>`;
+        }).join('');
+        return `<section class="v88-source-detail ${ok?'v88-ok':''}"><div class="v88-source-detail-hd"><div class="v88-source-detail-title"><i class="ph ${ok?'ph-check-circle':'ph-circle'}"></i>${nome}</div><span class="badge ${ok?'b-buy':''}">${ok?'Importado':'Pendente'}</span></div>${ok?registros:'<div class="mini-note">Nenhum PDF confirmado desta origem para este mês.</div>'}</section>`;
+      }).join('');
+      body.innerHTML=`<div class="info-box"><strong>${this.v88NomeMes(mes)}/${ano}:</strong> ${complete?'os três relatórios foram importados e confirmados.':`faltam ${3-total} de 3 relatórios.`}</div><div class="v88-modal-summary"><div class="v88-modal-summary-card ${complete?'v88-ok':''}"><span>Situação geral</span><strong>${complete?'✓ Completo':'Em conferência'}</strong></div><div class="v88-modal-summary-card"><span>Relatórios confirmados</span><strong>${total}/3</strong></div><div class="v88-modal-summary-card"><span>Importações registradas</span><strong>${fontes.reduce((s,f)=>s+g[f].length,0)}</strong></div><div class="v88-modal-summary-card"><span>Mês de referência</span><strong>${String(mes).padStart(2,'0')}/${ano}</strong></div></div>${fonteHtml}`;
+      this.abrirModal?.('modalConferenciaRendaV88');
+    };
+
+    const ajudaAnterior=A.v87InjetarAjudaPTAX?.bind(A);
+    if(ajudaAnterior){
+      A.v87InjetarAjudaPTAX=function(){
+        const ret=ajudaAnterior(...arguments);
+        const help=document.getElementById('v87PtaxSheetHelp');
+        if(help) help.innerHTML='<strong>PTAX automática:</strong> na mesma planilha, use a aba <strong>PTAX</strong>, com <strong>Data</strong> na coluna A e <strong>PTAX</strong> na coluna B. O sistema tenta a data exata e, quando ela não existe, usa a cotação disponível mais próxima, priorizando o dia anterior e depois o seguinte.';
+        const info=document.getElementById('rendaPdfImportCard')?.querySelector('.info-box');
+        if(info) info.innerHTML='Lê extratos mensais da <strong>B3</strong>, <strong>Avenue</strong> e <strong>Nomad</strong>. A conferência mostra o valor do extrato, o valor reconhecido e a diferença antes da confirmação. No exterior, a PTAX é procurada na planilha e no Banco Central; sem cotação exata, usa o dia disponível mais próximo, priorizando o anterior.';
+        this.v88RenderConferenciaMensal?.();
+        return ret;
+      };
+    }
+
+    const painelAnterior=A.v78RenderRendaPDFPanel?.bind(A);
+    if(painelAnterior){
+      A.v78RenderRendaPDFPanel=function(){const ret=painelAnterior(...arguments);this.v88RenderConferenciaMensal?.();return ret;};
+    }
+    const rendaAnterior=A.renderizarRenda?.bind(A);
+    if(rendaAnterior){
+      A.renderizarRenda=function(){const ret=rendaAnterior(...arguments);setTimeout(()=>this.v88RenderConferenciaMensal?.(),0);return ret;};
+    }
+    const navegarAnterior=A.navigate?.bind(A);
+    if(navegarAnterior){
+      A.navigate=function(viewId,el){const ret=navegarAnterior(viewId,el);if(viewId==='view-renda')setTimeout(()=>this.v88RenderConferenciaMensal?.(),70);return ret;};
+    }
+
+    A.v88GarantirModalConferencia?.();
+    A.v88RenderConferenciaMensal?.();
+    A.v87InjetarAjudaPTAX?.();
+    [250,800,1700,3200].forEach(ms=>setTimeout(()=>{A.v88RenderConferenciaMensal?.();A.v87InjetarAjudaPTAX?.();},ms));
+  }
+  installV88();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(installV88,80));
+  window.addEventListener('load',()=>setTimeout(installV88,140));
+})();
+</script>
+
+
+
+<!-- Ajuste solicitado: composição em meia largura + ranking de dividendos no Dashboard -->
+<style id="v89-dashboard-top-dividendos-style">
+#view-dashboard .v70-line-2{
+  grid-template-columns:minmax(215px,270px) minmax(0,1fr) minmax(0,1fr)!important;
+}
+#view-dashboard .v70-line-2>.v63-card-composition,
+#view-dashboard .v70-line-2>.v89-dividend-panel{
+  min-width:0;
+  height:100%;
+  margin:0!important;
+}
+#view-dashboard .v89-dividend-panel{
+  position:relative!important;
+  top:auto!important;
+  cursor:default;
+  border-color:color-mix(in srgb,var(--success) 42%,var(--border))!important;
+  background:linear-gradient(180deg,var(--success-glow),var(--bg-card))!important;
+}
+#view-dashboard .v89-dividend-panel .v63-top-panel-head{
+  margin-bottom:9px!important;
+  padding-bottom:9px!important;
+  border-bottom-color:color-mix(in srgb,var(--success) 24%,var(--border))!important;
+}
+#view-dashboard .v89-dividend-panel .v63-top-panel-head strong i{color:var(--success)!important;}
+#view-dashboard .v89-dividend-panel .v63-top-panel-head>span{
+  color:var(--success)!important;
+  border-color:color-mix(in srgb,var(--success) 45%,var(--border))!important;
+  background:var(--success-glow)!important;
+}
+#view-dashboard .v89-dividend-panel .v63-top-summary{margin-bottom:9px!important;}
+#view-dashboard .v89-dividend-panel .v63-top-kpi{padding:7px 8px!important;}
+#view-dashboard .v89-dividend-panel .v63-top-kpi strong{font-size:15px!important;}
+#view-dashboard .v89-dividend-list{
+  gap:6px!important;
+  max-height:176px;
+  overflow:auto;
+  padding-right:2px;
+}
+#view-dashboard .v89-dividend-list .v63-position-row{
+  padding:6px 8px!important;
+  border-radius:9px!important;
+}
+#view-dashboard .v89-dividend-list .v63-position-row:hover{
+  border-color:var(--success)!important;
+  background:var(--success-glow)!important;
+}
+#view-dashboard .v89-dividend-list .v63-rank{
+  color:var(--success)!important;
+  border-color:color-mix(in srgb,var(--success) 45%,var(--border))!important;
+  background:var(--success-glow)!important;
+}
+#view-dashboard .v89-dividend-list .v63-position-bar i{
+  background:linear-gradient(90deg,var(--success),var(--primary))!important;
+}
+#view-dashboard .v89-dividend-list .v63-position-value strong{color:var(--success)!important;}
+#view-dashboard .v89-dividend-origin{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media(max-width:1250px){
+  #view-dashboard .v70-line-2{grid-template-columns:minmax(215px,270px) minmax(0,1fr)!important;}
+  #view-dashboard .v89-dividend-panel{grid-column:1/-1;}
+}
+@media(max-width:760px){
+  #view-dashboard .v70-line-2{grid-template-columns:1fr!important;}
+  #view-dashboard .v89-dividend-panel{grid-column:auto;}
+}
+</style>
+<script id="v89-dashboard-top-dividendos-script">
+(function(){
+  function getApp(){
+    try{
+      if(window.app) return window.app;
+      if(typeof app !== 'undefined'){ window.app = app; return app; }
+    }catch(e){}
+    return null;
+  }
+
+  function installV89(){
+    const A = getApp();
+    if(!A || A.__v89DashboardTopDividendosInstalled) return;
+    A.__v89DashboardTopDividendosInstalled = true;
+
+    A.v89OrigemDividendos = function(h){
+      const raw = `${h?.modelo || ''} ${h?.corretora || ''}`.toUpperCase();
+      if(raw.includes('AVENUE')) return 'Avenue';
+      if(raw.includes('NOMAD')) return 'Nomad';
+      if(raw.includes('B3')) return 'B3';
+      return '';
+    };
+
+    A.v89DadosTopDividendos = function(){
+      const historico = this.v78EnsureRendaPDFState?.() || this.s?.rendaImportadaPDF || [];
+      const acumulado = {};
+      let totalGeral = 0;
+
+      historico.forEach(h => {
+        const ano = Number(h?.ano || 0);
+        const mes = Number(h?.mes || 0);
+        const chaveMes = `${String(ano).padStart(4,'0')}-${String(mes).padStart(2,'0')}`;
+        if(chaveMes < '2026-06') return;
+        const origem = this.v89OrigemDividendos?.(h) || '';
+
+        Object.values(h?.porAtivo || {}).forEach(a => {
+          const ticker = String(a?.ticker || '').toUpperCase().trim();
+          if(!ticker) return;
+          let valor = this.parseNum?.(a?.total || 0) || 0;
+          if(!(valor > 0) && Array.isArray(a?.itens)){
+            valor = a.itens.reduce((s,i) => s + (this.parseNum?.(i?.valorBRL ?? i?.valorLiquido ?? 0) || 0), 0);
+          }
+          if(!(valor > 0)) return;
+
+          const eventos = this.parseNum?.(a?.eventos || a?.itens?.length || 0) || 0;
+          if(!acumulado[ticker]) acumulado[ticker] = {ticker,total:0,eventos:0,ultimo:'',origens:new Set()};
+          acumulado[ticker].total += valor;
+          acumulado[ticker].eventos += eventos;
+          if(chaveMes > acumulado[ticker].ultimo) acumulado[ticker].ultimo = chaveMes;
+          if(origem) acumulado[ticker].origens.add(origem);
+          totalGeral += valor;
+        });
+      });
+
+      const ranking = Object.values(acumulado)
+        .sort((a,b) => (b.total || 0) - (a.total || 0) || String(a.ticker).localeCompare(String(b.ticker)));
+      return {ranking,totalGeral};
+    };
+
+    A.v89RenderTopDividendosDashboard = function(){
+      const painel = document.getElementById('v89DashboardDividendosPanel');
+      const resumo = document.getElementById('v89DashboardDividendosSummary');
+      const lista = document.getElementById('v89DashboardDividendosList');
+      if(!painel || !resumo || !lista) return;
+
+      const dados = this.v89DadosTopDividendos?.() || {ranking:[],totalGeral:0};
+      const ranking = dados.ranking || [];
+      const primeiro = ranking[0];
+      resumo.innerHTML = `
+        <div class="v63-top-kpi"><span>Maior recebedor</span><strong>${primeiro ? this.esc?.(primeiro.ticker) || primeiro.ticker : '—'}</strong><small>${primeiro ? this.fmt?.(primeiro.total || 0) || primeiro.total : 'sem importações'}</small></div>
+        <div class="v63-top-kpi"><span>Total acumulado</span><strong>${this.fmt?.(dados.totalGeral || 0) || dados.totalGeral}</strong><small>${ranking.length} ativo${ranking.length === 1 ? '' : 's'}</small></div>`;
+
+      const maior = Number(primeiro?.total || 0) || 1;
+      lista.innerHTML = ranking.length ? ranking.slice(0,10).map((a,idx) => {
+        const origens = [...(a.origens || [])].join(' · ') || 'PDF importado';
+        const ultimo = a.ultimo ? a.ultimo.split('-').reverse().join('/') : '—';
+        const largura = Math.max(7, Math.min(100, ((Number(a.total || 0) / maior) * 100)));
+        return `<div class="v63-position-row ${idx===0?'is-top':''}">
+          <div class="v63-rank">${idx+1}</div>
+          <div class="v63-position-main">
+            <strong>${this.esc?.(a.ticker) || a.ticker}</strong>
+            <span class="v89-dividend-origin">${this.esc?.(origens) || origens} · ${a.eventos || 0} evento${Number(a.eventos || 0) === 1 ? '' : 's'}</span>
+            <div class="v63-position-bar"><i style="width:${largura.toFixed(1)}%"></i></div>
+          </div>
+          <div class="v63-position-value">
+            <strong>${this.fmt?.(a.total || 0) || a.total}</strong>
+            <span>${ultimo}</span>
+          </div>
+        </div>`;
+      }).join('') : '<div class="empty-smart">O ranking será preenchido com os PDFs confirmados a partir de jun/2026.</div>';
+    };
+
+    A.v89PrepararDashboardTopDividendos = function(){
+      const linha = document.getElementById('v70Line2');
+      const composicao = document.getElementById('patrimonioSegmentosResumo')?.closest('.card');
+      if(!linha || !composicao) return;
+
+      let painel = document.getElementById('v89DashboardDividendosPanel');
+      if(!painel){
+        painel = document.createElement('aside');
+        painel.id = 'v89DashboardDividendosPanel';
+        painel.className = 'v63-top-panel v89-dividend-panel';
+        painel.innerHTML = `
+          <div class="v63-top-panel-head">
+            <div><div class="v63-section-eyebrow">Renda passiva</div><strong><i class="ph-fill ph-hand-coins"></i> Top dividendos recebidos</strong></div>
+            <span>Desde jun/26</span>
+          </div>
+          <div id="v89DashboardDividendosSummary" class="v63-top-summary"></div>
+          <div id="v89DashboardDividendosList" class="v63-top-list v89-dividend-list"></div>`;
+      }
+
+      if(composicao.parentNode !== linha) linha.appendChild(composicao);
+      if(painel.parentNode !== linha || painel.previousElementSibling !== composicao) composicao.insertAdjacentElement('afterend',painel);
+      this.v89RenderTopDividendosDashboard?.();
+    };
+
+    const envolver = nome => {
+      const anterior = A[nome]?.bind(A);
+      if(!anterior || anterior.__v89Wrapped) return;
+      const fn = function(){
+        const retorno = anterior(...arguments);
+        setTimeout(() => this.v89PrepararDashboardTopDividendos?.(), 0);
+        return retorno;
+      };
+      fn.__v89Wrapped = true;
+      A[nome] = fn;
+    };
+
+    ['renderizarDashboard','atualizarTudo','v70PrepararDashboardHierarquia','v70ApplyDashboardHierarchy','v78RenderRendaPDFPanel'].forEach(envolver);
+
+    A.v89PrepararDashboardTopDividendos?.();
+    [150,700,1600,3200].forEach(ms => setTimeout(() => A.v89PrepararDashboardTopDividendos?.(), ms));
+  }
+
+  installV89();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV89,80));
+  window.addEventListener('load', () => setTimeout(installV89,140));
+})();
+</script>
+
+<!-- Ficha detalhada do ativo ao clicar no ticker -->
+<style id="v90-ficha-ativo-style">
+#modalFichaAtivoV90 .modal{width:min(1480px,calc(100vw - 28px));max-width:1480px;max-height:94vh;overflow:auto;}
+.v90-asset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+.v90-asset-id{display:flex;align-items:center;gap:11px;}
+.v90-asset-icon{width:42px;height:42px;border-radius:12px;border:1px solid var(--border-bright);background:var(--primary-glow);color:var(--primary);display:grid;place-items:center;font-size:22px;flex:0 0 auto;}
+.v90-asset-id h3{margin:0;font-family:var(--font-display);font-size:23px;line-height:1.05;}
+.v90-asset-id p{margin:4px 0 0;color:var(--text-muted);font-size:11px;font-weight:700;}
+.v90-asset-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.v90-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px 0 16px;}
+.v90-metric{min-width:0;border:1px solid var(--border);background:var(--bg-card);border-radius:12px;padding:10px 11px;}
+.v90-metric span{display:block;color:var(--text-muted);font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.55px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.v90-metric strong{display:block;font-family:var(--font-mono);font-size:15px;line-height:1.2;overflow-wrap:anywhere;}
+.v90-metric small{display:block;color:var(--text-muted);font-size:10px;line-height:1.3;margin-top:4px;min-height:13px;}
+.v90-metric.is-positive strong{color:var(--success);}
+.v90-metric.is-negative strong{color:var(--danger);}
+.v90-section{border:1px solid var(--border);background:var(--bg-card);border-radius:14px;padding:14px;margin-top:12px;}
+.v90-section-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.v90-section-title{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:14px;font-weight:800;}
+.v90-section-title i{font-size:18px;color:var(--primary);}
+.v90-section-hd .mini-note{text-align:right;}
+.v90-table-scroll{max-height:290px;overflow:auto;border:1px solid var(--border);border-radius:10px;}
+.v90-table-scroll table{margin:0;}
+.v90-table-scroll thead th{position:sticky;top:0;z-index:2;background:var(--bg-card);}
+.v90-empty{padding:22px;text-align:center;color:var(--text-muted);font-size:12px;}
+.v90-clickable-ticker{cursor:pointer!important;}
+.v90-clickable-ticker:hover strong,
+#tbAtivos td:first-child a:hover{color:var(--success)!important;}
+#v89DashboardDividendosList .v63-position-row,
+#dashTopAtivosInline .dash-top-row,
+#dashTopAtivos .dash-top-row,
+#rendaPdfTopBody tr{cursor:pointer;}
+#v89DashboardDividendosList .v63-position-row:focus-visible,
+#dashTopAtivosInline .dash-top-row:focus-visible,
+#dashTopAtivos .dash-top-row:focus-visible,
+#rendaPdfTopBody tr:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+@media(max-width:980px){.v90-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:680px){#modalFichaAtivoV90 .modal{max-width:96vw;}.v90-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.v90-asset-badges{justify-content:flex-start;}.v90-section{padding:10px;}}
+@media(max-width:430px){.v90-metrics{grid-template-columns:1fr;}}
+</style>
+<script id="v90-ficha-ativo-script">
+(function(){
+  function getApp(){
+    try{
+      if(window.app) return window.app;
+      if(typeof app !== 'undefined'){ window.app = app; return app; }
+    }catch(e){}
+    return null;
+  }
+
+  function installV90(){
+    const A = getApp();
+    if(!A || A.__v90FichaAtivoInstalled) return;
+    A.__v90FichaAtivoInstalled = true;
+
+    const fmtUSD = v => `US$ ${Number(v || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    const dataBR = d => {
+      const iso = String(d || '').slice(0,10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : (d || '—');
+    };
+    const tickerTx = (tx,ticker) => [tx?.titulo,tx?.ativoOrigem,tx?.tickerDestino].some(v => String(v || '').toUpperCase().trim() === ticker);
+    const tipoRenda = tipo => {
+      const t = String(tipo || '').toUpperCase();
+      return ['DIVIDENDO','PROVENTO','JCP','RENDIMENTO','AMORTIZACAO','JUROS SOBRE CAPITAL'].some(x => t.includes(x));
+    };
+
+    A.v90GarantirModalFichaAtivo = function(){
+      if(document.getElementById('modalFichaAtivoV90')) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      overlay.id = 'modalFichaAtivoV90';
+      overlay.innerHTML = `<div class="modal"><div id="v90FichaAtivoBody"></div></div>`;
+      overlay.addEventListener('click',e => { if(e.target === overlay) overlay.classList.remove('active'); });
+      document.body.appendChild(overlay);
+    };
+
+    A.v90EventosDividendosAtivo = function(ticker){
+      ticker = String(ticker || '').toUpperCase().trim();
+      const eventos = [];
+      const vistos = new Set();
+      const add = item => {
+        const valor = this.parseNum?.(item.valorBRL ?? item.valor ?? 0) || 0;
+        const valorUSD = this.parseNum?.(item.valorUSD ?? 0) || 0;
+        const data = String(item.data || '').slice(0,10);
+        const origem = String(item.origem || '—').toUpperCase();
+        if(!(valor > 0 || valorUSD > 0)) return;
+        const chave = [data,origem,Number(valor).toFixed(2),Number(valorUSD).toFixed(2),String(item.evento || '')].join('|');
+        if(vistos.has(chave)) return;
+        vistos.add(chave);
+        eventos.push({data,valor,valorUSD,origem,evento:item.evento || 'Dividendo'});
+      };
+
+      (this.s?.banco || []).forEach(tx => {
+        const tipo = this.normalizeTipo?.(tx.tipo || '') || String(tx.tipo || '').toUpperCase();
+        if(!tickerTx(tx,ticker) || !tipoRenda(tipo)) return;
+        add({
+          data:this.normData?.(tx.data || '') || tx.data,
+          valorBRL:this.parseNum?.(tx.valorOp ?? tx.valorLiquido ?? tx.valor ?? 0) || 0,
+          valorUSD:this.parseNum?.(tx.valorDolar ?? tx.liquidoUSD ?? 0) || 0,
+          origem:tx.onde || tx.corretora || 'Operações',
+          evento:tipo
+        });
+      });
+
+      const historico = this.v78EnsureRendaPDFState?.() || this.s?.rendaImportadaPDF || [];
+      historico.forEach(h => {
+        const porAtivo = h?.porAtivo || {};
+        const itemAtivo = porAtivo[ticker] || Object.values(porAtivo).find(a => String(a?.ticker || '').toUpperCase().trim() === ticker);
+        if(!itemAtivo) return;
+        const origem = h.corretora || h.modelo || 'PDF';
+        if(Array.isArray(itemAtivo.itens) && itemAtivo.itens.length){
+          itemAtivo.itens.forEach(i => add({
+            data:i.data || i.dataLancamento || `${h.ano}-${String(h.mes).padStart(2,'0')}-01`,
+            valorBRL:this.parseNum?.(i.valorBRL ?? i.valorLiquido ?? i.total ?? 0) || 0,
+            valorUSD:this.parseNum?.(i.liquidoUSD ?? i.valorUSD ?? 0) || 0,
+            origem,
+            evento:i.evento || 'Dividendo'
+          }));
+        }else{
+          add({
+            data:`${h.ano}-${String(h.mes).padStart(2,'0')}-01`,
+            valorBRL:this.parseNum?.(itemAtivo.total || 0) || 0,
+            valorUSD:this.parseNum?.(itemAtivo.totalUSDLiquido || 0) || 0,
+            origem,
+            evento:'Total mensal importado'
+          });
+        }
+      });
+
+      return eventos.sort((a,b) => String(b.data || '').localeCompare(String(a.data || '')) || (b.valor || 0) - (a.valor || 0));
+    };
+
+    A.v90AbrirOperacoesAtivo = function(ticker){
+      this.fecharModal?.('modalFichaAtivoV90');
+      this.abrirAportesFiltrado?.(ticker);
+    };
+
+    A.v90GerarPromptEventosCarteiraIA = function(tickerFoco=''){
+      if(!this.s.posicaoAtual || !Object.keys(this.s.posicaoAtual).length) this.s.posicaoAtual = this.calcularPosicaoAteData?.() || {};
+      const consolidados = this.getAtivosConsolidados?.() || [];
+      const consolidadosPorTicker = Object.fromEntries(consolidados.map(a => [String(a?.ticker || '').toUpperCase().trim(),a]));
+      const carteira = {};
+      const garantir = ticker => {
+        ticker = String(ticker || '').toUpperCase().trim();
+        if(!ticker) return null;
+        if(!carteira[ticker]) carteira[ticker] = {ticker,qtd:0,classes:new Set(),locais:new Set(),corretoras:new Set(),titulares:new Set()};
+        return carteira[ticker];
+      };
+
+      Object.values(this.s.posicaoAtual || {}).forEach(p => {
+        const qtd = Number(p?.qtd || 0);
+        if(!(qtd > 0.00001)) return;
+        const ticker = String(p?.ticker || '').toUpperCase().trim();
+        const item = garantir(ticker);
+        if(!item) return;
+        const consolidado = consolidadosPorTicker[ticker] || {};
+        item.qtd += qtd;
+        const classe = String(p?.classe || consolidado?.classe || '').trim();
+        const local = String(p?.local || consolidado?.local || '').trim();
+        const corretora = String(p?.onde || p?.corretora || '').trim();
+        const titular = String(this.normalizarTitular?.(p?.quem || '') || p?.quem || '').trim();
+        if(classe) item.classes.add(classe);
+        if(local) item.locais.add(local);
+        if(corretora) item.corretoras.add(corretora.toUpperCase());
+        if(titular) item.titulares.add(titular);
+      });
+
+      consolidados.forEach(a => {
+        const qtd = Number(a?.qtd || 0);
+        if(!(qtd > 0.00001)) return;
+        const ticker = String(a?.ticker || '').toUpperCase().trim();
+        const item = garantir(ticker);
+        if(!item) return;
+        if(!(item.qtd > 0)) item.qtd = qtd;
+        if(a?.classe) item.classes.add(String(a.classe).trim());
+        if(a?.local) item.locais.add(String(a.local).trim());
+      });
+
+      const ativos = Object.values(carteira).sort((a,b) => a.ticker.localeCompare(b.ticker));
+      const foco = String(tickerFoco || '').toUpperCase().trim();
+      const hoje = new Date().toLocaleDateString('pt-BR');
+      const lista = ativos.length ? ativos.map(a => {
+        const partes = [
+          `- ${a.ticker}`,
+          `quantidade atual: ${Number(a.qtd || 0).toLocaleString('pt-BR',{maximumFractionDigits:8})}`,
+          `classe: ${[...a.classes].join(' / ') || 'não informada'}`,
+          `mercado/local: ${[...a.locais].join(' / ') || 'não informado'}`,
+          `corretora(s): ${[...a.corretoras].join(' / ') || 'não informada(s)'}`
+        ];
+        return partes.join(' | ');
+      }).join('\n') : '- Nenhum ativo com posição atual foi identificado.';
+
+      return `Faça uma verificação atualizada de eventos corporativos que possam repercutir na minha carteira de investimentos. Use pesquisa na internet e priorize fontes oficiais das companhias, bolsas, reguladores, administradores dos fundos e comunicados das corretoras. A data desta solicitação é ${hoje}.${foco ? ` A ficha aberta no sistema é a do ativo ${foco}, mas a análise deve abranger toda a carteira abaixo.` : ''}
+
+CARTEIRA ATUAL:
+${lista}
+
+Procure eventos já ocorridos recentemente, anunciados ou com data futura confirmada, incluindo: desdobramento ou grupamento, bonificação, subscrição ou direitos, alteração de ticker, incorporação, fusão, cisão ou spin-off, OPA/tender offer, conversão, liquidação ou fechamento de fundo, mudança relevante de política de dividendos, distribuição extraordinária, devolução de capital, delistagem, mudança de bolsa, troca de depositário, eventos que alterem quantidade de cotas/ações ou custo fiscal e outros atos societários que exijam atualização da posição.
+
+Para cada evento encontrado, informe em tabela:
+1. ticker afetado;
+2. empresa ou fundo;
+3. tipo de evento;
+4. data de anúncio, data-base e data de efetivação, quando existirem;
+5. proporção ou termos do evento;
+6. impacto esperado sobre quantidade, ticker, preço médio/custo fiscal, dividendos ou custódia desta carteira;
+7. ação prática necessária no meu controle patrimonial;
+8. fonte oficial com link e data da consulta.
+
+Não confunda oscilação normal de preço, notícia de mercado ou resultado trimestral com evento corporativo. Não invente eventos. Quando não houver confirmação oficial, marque claramente como não confirmado. Ao final, apresente duas seções: "Eventos que exigem ajuste no sistema" e "Nenhum ajuste necessário por enquanto". Não dê recomendação de compra ou venda.`;
+    };
+
+    A.v90CopiarPromptEventosCarteiraIA = function(tickerFoco=''){
+      const texto = this.v90GerarPromptEventosCarteiraIA?.(tickerFoco) || '';
+      if(!texto){ this.toast?.('Não foi possível gerar o prompt.', 'warning'); return; }
+      const concluir = () => {
+        const btn = document.getElementById('btnV90CopiarPromptEventos');
+        if(btn){
+          const original = btn.dataset.originalHtml || btn.innerHTML;
+          btn.dataset.originalHtml = original;
+          btn.innerHTML = '<i class="ph ph-check"></i> Prompt copiado';
+          setTimeout(() => { if(btn) btn.innerHTML = original; },1600);
+        }
+        this.toast?.('Prompt da carteira copiado.', 'success');
+      };
+      const fallback = () => {
+        const area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly','');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        area.style.pointerEvents = 'none';
+        document.body.appendChild(area);
+        area.select();
+        try{ document.execCommand('copy'); concluir(); }
+        catch(e){ this.toast?.('Não foi possível copiar automaticamente.', 'error'); }
+        finally{ area.remove(); }
+      };
+      if(navigator.clipboard?.writeText) navigator.clipboard.writeText(texto).then(concluir).catch(fallback);
+      else fallback();
+    };
+
+    A.abrirFichaAtivoV90 = function(ticker){
+      ticker = String(ticker || '').toUpperCase().trim();
+      if(!ticker) return;
+      this.v90GarantirModalFichaAtivo?.();
+      if(!this.s.posicaoAtual || !Object.keys(this.s.posicaoAtual).length) this.s.posicaoAtual = this.calcularPosicaoAteData?.() || {};
+
+      const pos = Object.values(this.s.posicaoAtual || {}).filter(p => String(p?.ticker || '').toUpperCase().trim() === ticker && Number(p?.qtd || 0) > 0.00001);
+      const txs = [...(this.s.banco || [])].filter(tx => tickerTx(tx,ticker));
+      const movimentos = txs.filter(tx => {
+        const t = this.normalizeTipo?.(tx.tipo || '') || String(tx.tipo || '').toUpperCase();
+        return t.includes('COMPRA') || t === 'VENDA';
+      }).sort((a,b) => String(this.normData?.(b.data || '') || b.data || '').localeCompare(String(this.normData?.(a.data || '') || a.data || '')));
+
+      const consolidados = this.getAtivosConsolidados?.() || [];
+      const ativoAtual = consolidados.find(a => String(a?.ticker || '').toUpperCase().trim() === ticker);
+      const ultimaTx = [...txs].sort((a,b) => String(this.normData?.(b.data || '') || b.data || '').localeCompare(String(this.normData?.(a.data || '') || a.data || '')))[0];
+      const classe = ativoAtual?.classe || this.s?.forcarClasse?.[ticker] || ultimaTx?.classe || '—';
+      const local = ativoAtual?.local || ultimaTx?.local || pos[0]?.local || '—';
+      const baseCotacao = ativoAtual || {ticker,classe,local,qtd:0,custoTotal:0,custoTotalDolar:0};
+
+      const qtd = pos.reduce((s,p) => s + (Number(p.qtd) || 0), 0) || Number(ativoAtual?.qtd || 0);
+      const custo = pos.reduce((s,p) => s + (Number(p.custoTotal) || 0), 0) || Number(ativoAtual?.custoTotal || 0);
+      const custoUSD = pos.reduce((s,p) => s + (Number(p.custoTotalDolar) || 0), 0) || Number(ativoAtual?.custoTotalDolar || 0);
+      const cotBRL = this.getCotacaoConvertidaBRL?.(baseCotacao) || 0;
+      const cotUnit = this.getCotacaoUnitaria?.(baseCotacao) || 0;
+      const valorAtual = cotBRL > 0 ? qtd * cotBRL : custo;
+      const precoMedio = qtd > 0 ? custo / qtd : 0;
+      const precoMedioUSD = qtd > 0 && custoUSD > 0 ? custoUSD / qtd : 0;
+
+      let totalCarteira = 0;
+      consolidados.forEach(a => {
+        const c = this.getCotacaoConvertidaBRL?.(a) || 0;
+        totalCarteira += c > 0 ? c * (Number(a.qtd) || 0) : (Number(a.custoTotal) || 0);
+      });
+      const participacao = totalCarteira > 0 ? valorAtual / totalCarteira * 100 : 0;
+      const metaInterna = this.parseNum?.(this.s?.metasAtivos?.[ticker] || 0) || 0;
+      const metaMacro = this.getMetaMacroFracao?.(classe) || 0;
+      const metaCarteira = metaMacro * metaInterna;
+
+      const dividendosEventos = this.v90EventosDividendosAtivo?.(ticker) || [];
+      const dividendos = dividendosEventos.reduce((s,i) => s + (Number(i.valor) || 0), 0);
+      const ultimoDividendo = dividendosEventos[0] || null;
+      const retSemDividendos = custo > 0 ? (valorAtual - custo) / custo * 100 : 0;
+      const retComDividendos = custo > 0 ? (valorAtual + dividendos - custo) / custo * 100 : 0;
+
+      const custodia = {};
+      pos.forEach(p => {
+        const quem = this.normalizarTitular?.(p.quem || '') || p.quem || '—';
+        const onde = String(p.onde || '—').toUpperCase();
+        const key = `${quem}__${onde}`;
+        if(!custodia[key]) custodia[key] = {quem,onde,qtd:0,custo:0,custoUSD:0,local:p.local || local};
+        custodia[key].qtd += Number(p.qtd) || 0;
+        custodia[key].custo += Number(p.custoTotal) || 0;
+        custodia[key].custoUSD += Number(p.custoTotalDolar) || 0;
+      });
+      const custodiaRows = Object.values(custodia).sort((a,b) => b.qtd-a.qtd || a.onde.localeCompare(b.onde));
+      const corretoras = [...new Set(custodiaRows.map(i => i.onde).filter(Boolean))];
+
+      const metric = (titulo,valor,nota='',classeExtra='') => `<div class="v90-metric ${classeExtra}"><span>${titulo}</span><strong>${valor}</strong><small>${nota || '&nbsp;'}</small></div>`;
+      const retornoClasse = v => v > 0.0001 ? 'is-positive' : v < -0.0001 ? 'is-negative' : '';
+      const ultimoValor = ultimoDividendo ? `${this.fmt?.(ultimoDividendo.valor || 0) || ultimoDividendo.valor}${ultimoDividendo.valorUSD > 0 ? `<small style="display:block;margin-top:3px">${fmtUSD(ultimoDividendo.valorUSD)}</small>` : ''}` : '—';
+
+      const custodiaHtml = custodiaRows.length ? custodiaRows.map(i => {
+        const c = this.getCotacaoConvertidaBRL?.({ticker,classe,local:i.local}) || cotBRL;
+        const vm = c > 0 ? i.qtd * c : i.custo;
+        const ret = i.custo > 0 ? (vm - i.custo) / i.custo * 100 : 0;
+        const pm = i.qtd > 0 ? i.custo / i.qtd : 0;
+        const pmUsd = i.qtd > 0 && i.custoUSD > 0 ? i.custoUSD / i.qtd : 0;
+        return `<tr><td>${this.esc?.(i.quem) || i.quem}</td><td><strong>${this.esc?.(i.onde) || i.onde}</strong></td><td>${this.fmtN?.(i.qtd,4) || i.qtd}</td><td>${this.fmt?.(pm) || pm}${pmUsd > 0 ? `<div class="mini-note">${fmtUSD(pmUsd)}</div>` : ''}</td><td>${this.fmt?.(i.custo) || i.custo}</td><td>${this.fmt?.(vm) || vm}</td><td><span class="heat-cell" style="${this.getHeatStyle?.(ret) || ''}">${this.fmtPct?.(ret) || `${ret.toFixed(2)}%`}</span></td></tr>`;
+      }).join('') : '<tr><td colspan="7"><div class="v90-empty">O ativo não possui posição atual em nenhuma corretora.</div></td></tr>';
+
+      const movHtml = movimentos.length ? movimentos.map(tx => {
+        const tipo = this.normalizeTipo?.(tx.tipo || '') || String(tx.tipo || '').toUpperCase();
+        const qtdTx = this.parseNum?.(tx.qtd || 0) || 0;
+        const totalBRL = this.parseNum?.(tx.valorOp ?? tx.total ?? 0) || 0;
+        const totalUSD = this.parseNum?.(tx.valorDolar || 0) || 0;
+        let unit = this.parseNum?.(tx.preco || 0) || 0;
+        if(!(unit > 0) && qtdTx > 0) unit = totalUSD > 0 ? totalUSD / qtdTx : totalBRL / qtdTx;
+        const exterior = String(tx.local || '').toUpperCase().includes('EXTERIOR') || totalUSD > 0;
+        return `<tr><td>${dataBR(this.normData?.(tx.data || '') || tx.data)}</td><td><span class="badge ${tipo.includes('COMPRA')?'b-buy':'b-sell'}">${this.esc?.(tipo) || tipo}</span></td><td>${this.fmtN?.(qtdTx,4) || qtdTx}</td><td>${exterior && unit > 0 ? fmtUSD(unit) : (this.fmt?.(unit) || unit)}</td><td>${this.fmt?.(totalBRL) || totalBRL}${totalUSD > 0 ? `<div class="mini-note">${fmtUSD(totalUSD)}</div>` : ''}</td><td>${this.esc?.(this.normalizarTitular?.(tx.quem || '') || tx.quem || '—') || '—'}</td><td>${this.esc?.(String(tx.onde || '—').toUpperCase()) || '—'}</td></tr>`;
+      }).join('') : '<tr><td colspan="7"><div class="v90-empty">Nenhuma compra ou venda encontrada para este ticker.</div></td></tr>';
+
+      const body = document.getElementById('v90FichaAtivoBody');
+      if(!body) return;
+      body.innerHTML = `
+        <div class="v90-asset-head">
+          <div class="v90-asset-id"><div class="v90-asset-icon"><i class="ph ph-chart-line-up"></i></div><div><h3>${this.esc?.(ticker) || ticker}</h3><p>Ficha consolidada do ativo</p></div></div>
+          <div class="v90-asset-badges"><span class="badge">${this.esc?.(classe) || classe}</span><span class="badge">${this.esc?.(String(local).toUpperCase()) || local}</span><span class="badge ${corretoras.length?'b-buy':''}">${corretoras.length ? `${corretoras.length} corretora${corretoras.length===1?'':'s'}` : 'sem custódia atual'}</span></div>
+        </div>
+        <div class="v90-metrics">
+          ${metric('Quantidade atual',this.fmtN?.(qtd,4) || qtd,corretoras.join(' · ') || 'sem posição atual')}
+          ${metric('Preço médio',this.fmt?.(precoMedio) || precoMedio,precoMedioUSD > 0 ? fmtUSD(precoMedioUSD) : 'custo médio por unidade')}
+          ${metric('Total investido',this.fmt?.(custo) || custo,'custo atual da posição')}
+          ${metric('Valor atual',this.fmt?.(valorAtual) || valorAtual,cotUnit > 0 && String(local).toUpperCase().includes('EXTERIOR') ? `cotação ${fmtUSD(cotUnit)}` : (cotBRL > 0 ? `cotação ${this.fmt?.(cotBRL) || cotBRL}` : 'sem cotação; usando custo'))}
+          ${metric('Dividendos acumulados',this.fmt?.(dividendos) || dividendos,`${dividendosEventos.length} recebimento${dividendosEventos.length===1?'':'s'} identificado${dividendosEventos.length===1?'':'s'}`,'is-positive')}
+          ${metric('Último dividendo',ultimoValor,ultimoDividendo ? `${dataBR(ultimoDividendo.data)} · ${this.esc?.(ultimoDividendo.origem) || ultimoDividendo.origem}` : 'nenhum identificado')}
+          ${metric('Rentabilidade sem dividendos',this.fmtPct?.(retSemDividendos) || `${retSemDividendos.toFixed(2)}%`,'valor atual versus custo',retornoClasse(retSemDividendos))}
+          ${metric('Rentabilidade com dividendos',this.fmtPct?.(retComDividendos) || `${retComDividendos.toFixed(2)}%`,'valor atual + dividendos versus custo',retornoClasse(retComDividendos))}
+          ${metric('Participação atual',`${this.fmtN?.(participacao,2) || participacao}%`,'da carteira acompanhada')}
+          ${metric('Meta',`${this.fmtN?.(metaCarteira,2) || metaCarteira}%`,metaInterna > 0 ? `${this.fmtN?.(metaInterna,1) || metaInterna}% dentro do grupo` : 'meta ainda não cadastrada')}
+        </div>
+
+        <section class="v90-section">
+          <div class="v90-section-hd"><div class="v90-section-title"><i class="ph ph-buildings"></i> Corretoras e custódia atual</div><div class="mini-note">posição consolidada por titular e corretora</div></div>
+          <div class="v90-table-scroll"><table><thead><tr><th>Titular</th><th>Corretora</th><th>Quantidade</th><th>Preço médio</th><th>Total investido</th><th>Valor atual</th><th>Retorno</th></tr></thead><tbody>${custodiaHtml}</tbody></table></div>
+        </section>
+
+        <section class="v90-section">
+          <div class="v90-section-hd"><div class="v90-section-title"><i class="ph ph-arrows-left-right"></i> Histórico de compras e vendas</div><div class="mini-note">${movimentos.length} movimentação${movimentos.length===1?'':'ões'} encontrada${movimentos.length===1?'':'s'}</div></div>
+          <div class="v90-table-scroll"><table><thead><tr><th>Data</th><th>Tipo</th><th>Quantidade</th><th>Preço unitário</th><th>Total</th><th>Titular</th><th>Corretora</th></tr></thead><tbody>${movHtml}</tbody></table></div>
+        </section>
+
+        <div class="modal-footer"><button class="btn btn-outline" id="btnV90CopiarPromptEventos" onclick="app.v90CopiarPromptEventosCarteiraIA('${this.esc?.(ticker) || ticker}')" title="Copia um prompt com todos os ativos atualmente em carteira"><i class="ph ph-copy"></i> Copiar prompt de eventos</button><button class="btn btn-outline" onclick="app.v90AbrirOperacoesAtivo('${this.esc?.(ticker) || ticker}')"><i class="ph ph-funnel"></i> Ver operações filtradas</button><button class="btn btn-primary" onclick="app.fecharModal('modalFichaAtivoV90')">Fechar</button></div>`;
+      this.abrirModal?.('modalFichaAtivoV90');
+    };
+
+    A.abrirConciliacaoAtivo = function(ticker){ return this.abrirFichaAtivoV90?.(ticker); };
+
+    A.v90PrepararTickersClicaveis = function(){
+      const preparar = (el,ticker) => {
+        if(!el || !ticker) return;
+        el.classList.add('v90-clickable-ticker');
+        el.dataset.v90Ticker = ticker;
+        el.setAttribute('role','button');
+        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+        el.title = `Abrir ficha de ${ticker}`;
+      };
+      document.querySelectorAll('#v89DashboardDividendosList .v63-position-row').forEach((row,idx) => {
+        const ticker = this.v89DadosTopDividendos?.()?.ranking?.[idx]?.ticker || row.querySelector('.v63-position-main strong')?.textContent?.trim();
+        preparar(row,ticker);
+      });
+      document.querySelectorAll('#dashTopAtivosInline .dash-top-row, #dashTopAtivos .dash-top-row').forEach(row => preparar(row,row.querySelector('.dash-row-title strong')?.textContent?.trim()));
+      document.querySelectorAll('#rendaPdfTopBody tr').forEach(row => preparar(row,row.querySelector('td:first-child strong')?.textContent?.trim()));
+    };
+
+    const abrirPeloElemento = (ev,el) => {
+      const ticker = String(el?.dataset?.v90Ticker || el?.textContent || '').toUpperCase().trim();
+      if(!ticker) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation?.();
+      A.abrirFichaAtivoV90?.(ticker);
+    };
+
+    document.addEventListener('click',ev => {
+      const linkAtivo = ev.target.closest('#tbAtivos td:first-child a');
+      if(linkAtivo) return abrirPeloElemento(ev,linkAtivo);
+      const row = ev.target.closest('[data-v90-ticker]');
+      if(row) return abrirPeloElemento(ev,row);
+    },true);
+    document.addEventListener('keydown',ev => {
+      if(ev.key !== 'Enter' && ev.key !== ' ') return;
+      const row = ev.target.closest('[data-v90-ticker]');
+      if(row) abrirPeloElemento(ev,row);
+    },true);
+
+    const wrap = nome => {
+      const anterior = A[nome]?.bind(A);
+      if(!anterior || anterior.__v90Wrapped) return;
+      const fn = function(){
+        const retorno = anterior(...arguments);
+        setTimeout(() => this.v90PrepararTickersClicaveis?.(),0);
+        return retorno;
+      };
+      fn.__v90Wrapped = true;
+      A[nome] = fn;
+    };
+    ['renderizarAtivos','renderizarDashboard','v89RenderTopDividendosDashboard','v78RenderRendaPDFPanel'].forEach(wrap);
+
+    A.v90GarantirModalFichaAtivo?.();
+    A.v90PrepararTickersClicaveis?.();
+    [200,700,1600,3200].forEach(ms => setTimeout(() => A.v90PrepararTickersClicaveis?.(),ms));
+  }
+
+  installV90();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded',() => setTimeout(installV90,80));
+  window.addEventListener('load',() => setTimeout(installV90,140));
 })();
 </script>
 
