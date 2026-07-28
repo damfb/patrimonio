@@ -16841,5 +16841,118 @@ Não confunda oscilação normal de preço, notícia de mercado ou resultado tri
 })();
 </script>
 
+<script id="v91-backup-historico-dividendos-js">
+(function(){
+  function getApp(){
+    try{
+      if(window.app) return window.app;
+      if(typeof app !== 'undefined'){ window.app = app; return app; }
+    }catch(e){}
+    return null;
+  }
+
+  function copiaSegura(valor){
+    try{ return JSON.parse(JSON.stringify(valor == null ? [] : valor)); }
+    catch(e){ return Array.isArray(valor) ? valor.slice() : []; }
+  }
+
+  function parsePossivel(valor){
+    if(typeof valor !== 'string') return valor;
+    try{ return JSON.parse(valor); }catch(e){ return valor; }
+  }
+
+  function localizarHistorico(root){
+    root = parsePossivel(root) || {};
+    const candidatos = [
+      root.rendaImportadaPDF,
+      root.wOS_rendaImportadaPDF,
+      root.historicoImportacoesDividendos,
+      root.localStorage && root.localStorage.wOS_rendaImportadaPDF,
+      root.storage && root.storage.wOS_rendaImportadaPDF,
+      root.payload && root.payload.rendaImportadaPDF,
+      root.backup && root.backup.rendaImportadaPDF
+    ];
+    for(const candidato of candidatos){
+      const valor = parsePossivel(candidato);
+      if(Array.isArray(valor)) return { encontrado:true, valor:copiaSegura(valor) };
+    }
+    return { encontrado:false, valor:[] };
+  }
+
+  function installV91(){
+    const A = getApp();
+    if(!A || A.__v91BackupHistoricoDividendosInstalled) return;
+    A.__v91BackupHistoricoDividendosInstalled = true;
+
+    const STORAGE_KEY = 'wOS_rendaImportadaPDF';
+    const oldMontarBackupPayload = A.montarBackupPayload?.bind(A);
+    const oldExtrairBackupCompat = A.extrairBackupCompat?.bind(A);
+    const oldMigrarEstruturas = A.migrarEstruturas?.bind(A);
+    const oldSalvarTudoLocal = A.salvarTudoLocal?.bind(A);
+
+    A.v91HistoricoDividendosAtual = function(){
+      let historico = Array.isArray(this.s?.rendaImportadaPDF) ? this.s.rendaImportadaPDF : null;
+      if(!historico){
+        try{
+          const salvo = parsePossivel(localStorage.getItem(STORAGE_KEY));
+          historico = Array.isArray(salvo) ? salvo : [];
+        }catch(e){ historico = []; }
+      }
+      this.s.rendaImportadaPDF = historico;
+      return historico;
+    };
+
+    A.montarBackupPayload = function(origem='manual'){
+      const payload = oldMontarBackupPayload ? oldMontarBackupPayload(origem) : {};
+      const historico = copiaSegura(this.v91HistoricoDividendosAtual?.() || []);
+      payload.rendaImportadaPDF = historico;
+      payload.wOS_rendaImportadaPDF = copiaSegura(historico);
+      payload.resumo = { ...(payload.resumo || {}) };
+      payload.resumo.qtdImportacoesDividendos = historico.length;
+      payload.resumo.qtdEventosDividendos = historico.reduce((s,h) => s + Number(h?.eventos || h?.itens?.length || 0), 0);
+      return payload;
+    };
+
+    A.extrairBackupCompat = function(d){
+      const b = oldExtrairBackupCompat ? oldExtrairBackupCompat(d) : {};
+      const localizado = localizarHistorico(d);
+      if(localizado.encontrado){
+        b.rendaImportadaPDF = copiaSegura(localizado.valor);
+        this.__v91HistoricoDividendosRestaurar = copiaSegura(localizado.valor);
+      }
+      return b;
+    };
+
+    A.migrarEstruturas = function(){
+      const ret = oldMigrarEstruturas ? oldMigrarEstruturas(...arguments) : undefined;
+      if(Object.prototype.hasOwnProperty.call(this, '__v91HistoricoDividendosRestaurar')){
+        const historico = copiaSegura(this.__v91HistoricoDividendosRestaurar);
+        this.s.rendaImportadaPDF = historico;
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(historico)); }catch(e){ console.warn('Falha ao restaurar histórico de dividendos', e); }
+        delete this.__v91HistoricoDividendosRestaurar;
+      }else{
+        this.v91HistoricoDividendosAtual?.();
+      }
+      return ret;
+    };
+
+    A.salvarTudoLocal = function(){
+      const ret = oldSalvarTudoLocal ? oldSalvarTudoLocal(...arguments) : undefined;
+      const historico = copiaSegura(this.v91HistoricoDividendosAtual?.() || []);
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(historico)); }catch(e){ console.warn('Falha ao salvar histórico de dividendos', e); }
+      return ret;
+    };
+
+    try{
+      const historico = A.v91HistoricoDividendosAtual?.() || [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(historico));
+    }catch(e){}
+  }
+
+  installV91();
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(installV91, 100));
+  window.addEventListener('load', () => setTimeout(installV91, 180));
+})();
+</script>
 </body>
 </html>
