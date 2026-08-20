@@ -20428,5 +20428,71 @@ Não confunda oscilação normal de preço, notícia de mercado ou resultado tri
   if(window.app)install();else window.addEventListener('load',install,{once:true});
 })();
 </script>
+<script id="v128-cotacao-consistente-js">
+(()=>{
+  const install=()=>{
+    const A=window.app;if(!A||A.__v128Installed)return;A.__v128Installed=true;
+    const n=value=>{const x=Number(value);return Number.isFinite(x)?x:0;};
+    A.VERSAO_SISTEMA='v128_cotacao_consistente';
+
+    A.v128DollarFromRows=function(rows,mode){
+      for(const row of rows||[]){
+        const ticker=String(row?.[0]??'').trim().toUpperCase().replace(/^(BVMF|B3|NASDAQ|NYSE|CURRENCY):/,'').trim();
+        if(ticker!=='USDBRL'&&ticker!=='USD/BRL')continue;
+        const value=mode==='raw'?n(row?.[1]):n(this.parseNum?.(String(row?.[1]??'').trim()));
+        if(value>3&&value<10)return value;
+      }
+      return 0;
+    };
+
+    A.v128RecordMarketSync=function(source,beforeDollar,afterDollar){
+      const record={source,beforeDollar:n(beforeDollar),afterDollar:n(afterDollar),at:new Date().toISOString()};
+      this.s.v128LastMarketSync=record;
+      try{localStorage.setItem('wOS_lastMarketReconciliation',JSON.stringify(record));}catch(e){}
+      return record;
+    };
+
+    const baseProcess=A._processarLinhasCotacao?.bind(A);
+    if(baseProcess)A._processarLinhasCotacao=function(rows,mode){
+      const before=this.getDolarHoje(),sheetDollar=this.v128DollarFromRows(rows,mode);
+      const result=baseProcess(rows,mode);
+      if(sheetDollar){
+        this.s.cotacoes=this.s.cotacoes||{};
+        this.s.cotacoes.USDBRL=sheetDollar;
+        delete this.s.cotacoes['USD/BRL'];
+        this.s.dolarAtual=sheetDollar;
+        this.__v126SheetDollarAt=Date.now();
+        this.__v128DollarSource='PLANILHA';
+        this.v126PersistMarket?.();
+        this.v128RecordMarketSync('PLANILHA',before,sheetDollar);
+        this.__v121PortfolioCache=null;this.__v120DashboardCoreSig='';
+        this.s.posicaoAtual=this.calcularPosicaoAteData?.()||this.s.posicaoAtual;
+        this.renderizarDashboard?.(true);this.renderConfigStats?.();this.v72RefreshDolarPill?.();
+      }
+      return result;
+    };
+
+    A.v126SyncDollar=async function(startedAt=Date.now()){
+      const before=this.getDolarHoje();
+      try{
+        const result=await this.v87BuscarPTAXAtualBCB?.({silencioso:true});
+        if(this.__v126SheetDollarAt>=startedAt)return this.getDolarHoje();
+        const value=n(result?.valor);
+        if(value>3&&value<10){
+          this.s.cotacoes=this.s.cotacoes||{};
+          this.s.cotacoes.USDBRL=value;delete this.s.cotacoes['USD/BRL'];
+          this.s.dolarAtual=value;this.__v128DollarSource='BCB';
+          this.v126PersistMarket?.();this.v128RecordMarketSync('BCB',before,value);
+          this.__v121PortfolioCache=null;this.__v120DashboardCoreSig='';
+          this.s.posicaoAtual=this.calcularPosicaoAteData?.()||this.s.posicaoAtual;
+          this.renderizarDashboard?.(true);this.renderConfigStats?.();this.v72RefreshDolarPill?.();
+        }
+        return this.getDolarHoje();
+      }catch(e){return this.getDolarHoje();}
+    };
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
 </body>
 </html>
