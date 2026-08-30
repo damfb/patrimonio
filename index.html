@@ -20494,5 +20494,361 @@ Não confunda oscilação normal de preço, notícia de mercado ou resultado tri
   if(window.app)install();else window.addEventListener('load',install,{once:true});
 })();
 </script>
+<!-- v129 · Tickers assistidos, colagem B3, backup vinculado e menu personalizável -->
+<style id="v129-entrada-segura-css">
+.v129-menu-tools{display:flex;gap:7px;margin:-2px 0 12px}.v129-menu-tools .btn{width:100%;justify-content:center;font-size:11px;padding:7px 9px}
+.sidebar.v129-menu-editing .nav-item{cursor:grab;border:1px dashed color-mix(in srgb,var(--primary) 55%,var(--border));padding-right:34px;position:relative}.sidebar.v129-menu-editing .nav-item:active{cursor:grabbing}.sidebar.v129-menu-editing .nav-group{min-height:42px}.sidebar.v129-menu-editing .nav-group.v129-drag-over{background:var(--primary-glow);border-radius:10px}.v129-nav-edit{display:none;position:absolute;right:7px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:0;border-radius:6px;background:var(--bg-hover);color:var(--primary);cursor:pointer;align-items:center;justify-content:center}.sidebar.v129-menu-editing .v129-nav-edit{display:inline-flex}.v129-nav-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v129-b3-card textarea{min-height:155px;font-family:var(--font-mono);font-size:12px}.v129-b3-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:end;margin-top:12px}.v129-b3-actions .f-group{margin:0;min-width:180px}.v129-b3-preview{margin-top:14px}.v129-b3-preview .table-wrap{max-height:300px;overflow:auto}.v129-new-chip{display:inline-flex;margin-left:5px;padding:2px 5px;border-radius:999px;background:var(--warning-glow);color:var(--warning);font-size:9px;font-weight:800;vertical-align:middle}.v129-b3-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}.v129-b3-summary>div{border:1px solid var(--border);border-radius:9px;background:var(--bg-card);padding:9px}.v129-b3-summary span{display:block;font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:800}.v129-b3-summary strong{display:block;margin-top:4px;font-size:14px}.v129-row-blocked{opacity:.58}
+.v129-linked-panel{border:1px solid var(--border);border-radius:11px;background:var(--bg-card);padding:12px}.v129-linked-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.v129-linked-file{font-weight:800;color:var(--text-main);word-break:break-word}.v129-linked-status{font-size:11px;color:var(--text-muted);margin-top:4px}.v129-linked-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.v129-linked-actions .btn{font-size:11px;padding:8px 10px}.v129-auto-total{background:color-mix(in srgb,var(--primary) 7%,var(--bg-card))!important}.v129-inactive-total{opacity:.48}
+@media(max-width:760px){.v129-b3-summary{grid-template-columns:1fr}.v129-linked-head{display:block}}
+</style>
+<script id="v129-entrada-segura-js">
+(()=>{
+  const install=()=>{
+    const A=window.app;if(!A||A.__v129Installed)return;A.__v129Installed=true;
+    A.VERSAO_SISTEMA='v129_entrada_segura_backup_menu';
+    const norm=value=>String(value??'').trim().toUpperCase();
+    const esc=value=>A.esc?A.esc(String(value??'')):String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const num=value=>{const x=Number(value);return Number.isFinite(x)?x:0;};
+
+    /* 1 · catálogo e confirmação de tickers novos */
+    A.v129TickerCatalog=function(){
+      const values=[];
+      (this.s?.banco||[]).forEach(x=>values.push(x.titulo,x.ativoOrigem,x.tickerDestino));
+      (this.s?.ativosPlanejados||[]).forEach(x=>values.push(x.ticker));
+      Object.values(this.s?.posicaoAtual||{}).forEach(x=>values.push(x.ticker));
+      Object.keys(this.s?.metasAtivos||{}).forEach(x=>values.push(x));
+      Object.keys(this.s?.forcarClasse||{}).forEach(x=>values.push(x));
+      Object.keys(this.s?.cotacoes||{}).forEach(x=>values.push(x));
+      return [...new Set(values.map(norm).filter(x=>x&&!['USDBRL','USD/BRL'].includes(x)))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    };
+    A.v129RefreshTickerSuggestions=function(){
+      let list=document.getElementById('v129TickerList');
+      if(!list){list=document.createElement('datalist');list.id='v129TickerList';document.body.appendChild(list);}
+      list.innerHTML=this.v129TickerCatalog().map(t=>`<option value="${esc(t)}"></option>`).join('');
+      document.querySelectorAll('input[type="text"]').forEach(input=>{
+        const hint=`${input.id||''} ${input.className||''} ${input.placeholder||''}`;
+        if(/ticker/i.test(hint)){input.setAttribute('list','v129TickerList');input.setAttribute('autocomplete','off');input.style.textTransform='uppercase';}
+      });
+    };
+    A.v129NewTickers=function(values){const known=new Set(this.v129TickerCatalog());return [...new Set((values||[]).map(norm).filter(Boolean))].filter(t=>!known.has(t));};
+    A.v129ConfirmNewTickers=function(values,context='lançamento'){
+      const fresh=this.v129NewTickers(values);if(!fresh.length)return true;
+      return confirm(`${fresh.length===1?'O ticker':'Os tickers'} ${fresh.join(', ')} ${fresh.length===1?'ainda não existe':'ainda não existem'} no sistema. Confirmar ${context} mesmo assim?`);
+    };
+    const baseOpen=A.abrirModalAporte?.bind(A);if(baseOpen)A.abrirModalAporte=function(id=null){const r=baseOpen(id);this.v129RefreshTickerSuggestions();this.v129BindOperationCalculator();this.v129UpdateOperationCurrency(!id);return r;};
+    const baseSave=A.salvarAporte?.bind(A);if(baseSave)A.salvarAporte=function(){const values=[document.getElementById('formTicker')?.value];if(this.normalizeTipo?.(document.getElementById('formTipo')?.value)==='SPINOFF')values.push(document.getElementById('formTickerDestino')?.value);if(!this.v129ConfirmNewTickers(values,'este lançamento'))return;const r=baseSave(...arguments);this.v129RefreshTickerSuggestions();return r;};
+    const basePlanned=A.adicionarAtivoPlanejado?.bind(A);if(basePlanned)A.adicionarAtivoPlanejado=function(){const t=document.getElementById('planejadoTicker')?.value;if(!this.v129ConfirmNewTickers([t],'a inclusão como ativo planejado'))return;const r=basePlanned(...arguments);this.v129RefreshTickerSuggestions();return r;};
+    const baseConfirmPreview=A.confirmarImportacaoPreview?.bind(A);if(baseConfirmPreview)A.confirmarImportacaoPreview=function(){const entries=this.v67PreviewEntries?.()||this.s?.pendingImportRows||this.s?.importPreview||[];const tickers=entries.map(e=>(e.row||e)?.titulo);if(!this.v129ConfirmNewTickers(tickers,'a importação'))return;const r=baseConfirmPreview(...arguments);this.v129RefreshTickerSuggestions();return r;};
+    const baseConfirmIncome=A.confirmarRendaPDFPreview?.bind(A);if(baseConfirmIncome)A.confirmarRendaPDFPreview=function(){const tickers=(this.s?.pendingRendaPDF?.itens||[]).map(item=>item?.ticker);if(!this.v129ConfirmNewTickers(tickers,'a importação dos proventos'))return;const r=baseConfirmIncome(...arguments);this.v129RefreshTickerSuggestions();return r;};
+
+    /* 1 · quantidade × preço, com moeda definida pela corretora */
+    A.v129UpdateOperationCurrency=function(recalculate=true){
+      const broker=document.getElementById('formOnde'),local=document.getElementById('formLocal');if(!broker)return;
+      if(!broker.value)broker.value=local?.value==='EXTERIOR'?'AVENUE':'ITAÚ';
+      const isItau=/ITAU|ITAÚ/.test(norm(broker.value));
+      const qtd=document.getElementById('formQtd'),preco=document.getElementById('formPreco'),brl=document.getElementById('formValorOp'),usd=document.getElementById('formValorDolar');
+      const brlGroup=brl?.closest('.f-group'),usdGroup=usd?.closest('.f-group');
+      brlGroup?.classList.toggle('v129-inactive-total',!isItau);usdGroup?.classList.toggle('v129-inactive-total',isItau);
+      if(brl){brl.readOnly=!isItau;brl.classList.toggle('v129-auto-total',isItau);brl.title=isItau?'Calculado automaticamente: quantidade × preço unitário':'Não utilizado para esta corretora';}
+      if(usd){usd.readOnly=isItau;usd.classList.toggle('v129-auto-total',!isItau);usd.title=!isItau?'Calculado automaticamente: quantidade × preço unitário':'Não utilizado para esta corretora';}
+      const brlLabel=brlGroup?.querySelector('.f-label'),usdLabel=usdGroup?.querySelector('.f-label');
+      if(brlLabel)brlLabel.textContent=isItau?'Valor Total (R$) · automático':'Valor Total (R$)';
+      if(usdLabel)usdLabel.textContent=!isItau?'Valor Total (US$) · automático':'Valor Total (US$)';
+      if(recalculate){const total=num(qtd?.value)*num(preco?.value),value=total?String(Math.round((total+Number.EPSILON)*100000000)/100000000):'';if(isItau){if(brl)brl.value=value;if(usd)usd.value='';}else{if(usd)usd.value=value;if(brl)brl.value='';}}
+    };
+    A.v129BindOperationCalculator=function(){
+      if(this.__v129CalcBound)return;this.__v129CalcBound=true;
+      const qtd=document.getElementById('formQtd'),preco=document.getElementById('formPreco'),broker=document.getElementById('formOnde'),local=document.getElementById('formLocal');
+      [qtd,preco].forEach(el=>el?.addEventListener('input',()=>this.v129UpdateOperationCurrency(true)));
+      broker?.addEventListener('change',()=>this.v129UpdateOperationCurrency(true));
+      local?.addEventListener('change',()=>{if(local.value==='BRASIL'&&!/ITAU|ITAÚ/.test(norm(broker?.value)))broker.value='ITAÚ';if(local.value==='EXTERIOR'&&/ITAU|ITAÚ/.test(norm(broker?.value)))broker.value='AVENUE';this.v129UpdateOperationCurrency(true);});
+    };
+
+    /* 2 · importador do texto copiado da área de movimentações da B3 */
+    A.v129ParseBrl=function(value){const s=String(value??'').replace(/R\$/gi,'').replace(/\s/g,'').replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,'');return num(s);};
+    A.v129ParseB3Date=function(line){
+      const clean=String(line||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const m=clean.match(/^(\d{1,2})\s+de\s+([a-z]+)\s+de\s+(\d{4})$/);if(!m)return '';
+      const months={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12},month=months[m[2]];return month?`${m[3]}-${String(month).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`:'';
+    };
+    A.v129B3Broker=function(institution){const raw=norm(institution);if(raw.includes('ITAU')||raw.includes('ITAÚ'))return 'ITAÚ';return this.v106Broker?.(raw,'BRASIL')||raw||'ITAÚ';};
+    A.v129ParseB3Paste=function(raw){
+      const rows=[];let date='';const titular=this.normalizarTitular?.(document.getElementById('v129B3Titular')?.value||'DAGLES')||'DAGLES';
+      String(raw||'').replace(/\r/g,'').split('\n').forEach(line=>{
+        const trimmed=line.trim();if(!trimmed)return;const parsedDate=this.v129ParseB3Date(trimmed);if(parsedDate){date=parsedDate;return;}
+        const cols=line.split(/\t+/).map(x=>x.trim());if(cols.length<8||!date||!/^(compra|venda)$/i.test(cols[0]))return;
+        const tipo=/^venda$/i.test(cols[0])?'VENDA':'COMPRA',ticker=norm(cols[4]),qtd=this.v129ParseBrl(cols[5]),preco=this.v129ParseBrl(cols[6]),total=this.v129ParseBrl(cols[7]),onde=this.v129B3Broker(cols[3]);if(!ticker||!(qtd>0)||!(preco>0))return;
+        const [ano,mes]=date.split('-').map(Number);const row={id:this.idGen(),data:date,ano,mes,tipo,local:'BRASIL',titulo:ticker,qtd,preco,valorOp:total||qtd*preco,valorDolar:0,ptax:'',onde,quem:titular,origemImportacao:'B3_COPIAR_COLAR',modeloNota:'B3 · área do investidor',observacaoImportacao:'Texto copiado da B3',conferenciaNota:{ok:Math.abs((qtd*preco)-(total||qtd*preco))<0.02,bruto:total||qtd*preco,liquido:total||qtd*preco,taxas:0,moeda:'BRL',mensagem:'Quantidade, preço e total reconhecidos do texto da B3'}};
+        rows.push(row);
+      });
+      const existing=new Set((this.s?.banco||[]).map(x=>this.chaveOperacaoV52?.(x)||'')),seen=new Set();rows.forEach(row=>{const key=this.chaveOperacaoV52?.(row)||[row.data,row.tipo,row.titulo,row.qtd,row.preco,row.onde,row.quem].join('|');row.duplicado=existing.has(key)||seen.has(key);seen.add(key);});
+      return rows;
+    };
+    A.v129RenderB3Preview=function(){
+      const raw=document.getElementById('v129B3Paste')?.value||'',rows=this.v129ParseB3Paste(raw);this.s.v129B3Rows=rows;const box=document.getElementById('v129B3Preview'),btn=document.getElementById('v129B3ImportBtn');if(btn)btn.disabled=!rows.some(x=>!x.duplicado);if(!box)return;
+      if(!raw.trim()){box.innerHTML='';return;}if(!rows.length){box.innerHTML='<div class="info-box">Não encontrei operações no texto. Copie na B3 incluindo a data e a linha completa da movimentação.</div>';return;}
+      const valid=rows.filter(x=>!x.duplicado),fresh=new Set(this.v129NewTickers(rows.map(x=>x.titulo))),total=valid.reduce((s,x)=>s+num(x.valorOp),0);
+      const body=rows.map(row=>`<tr class="${row.duplicado?'v129-row-blocked':''}"><td>${esc(this.fmtDataCurta?.(row.data)||row.data)}</td><td><strong>${esc(row.titulo)}</strong>${fresh.has(row.titulo)?'<span class="v129-new-chip">NOVO</span>':''}</td><td>${esc(row.tipo)}</td><td>${esc(row.onde)}</td><td>${this.fmtN?.(row.qtd,6)||row.qtd}</td><td>${this.fmt?.(row.preco)||row.preco}</td><td><strong>${this.fmt?.(row.valorOp)||row.valorOp}</strong></td><td>${row.duplicado?'<span class="badge b-sell">DUPLICADA</span>':'<span class="badge b-buy">PRONTA</span>'}</td></tr>`).join('');
+      box.innerHTML=`<div class="v129-b3-summary"><div><span>Reconhecidas</span><strong>${rows.length}</strong></div><div><span>Prontas para importar</span><strong>${valid.length}</strong></div><div><span>Total válido</span><strong>${this.fmt?.(total)||total}</strong></div></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Ticker</th><th>Tipo</th><th>Corretora</th><th>Qtd.</th><th>Preço</th><th>Total</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    };
+    A.v129ImportB3=function(){
+      const rows=(this.s?.v129B3Rows||[]).filter(x=>!x.duplicado);if(!rows.length){this.toast?.('Nenhuma operação nova pronta para importar.','warning');return;}if(!this.v129ConfirmNewTickers(rows.map(x=>x.titulo),'a importação da B3'))return;
+      const total=rows.reduce((s,x)=>s+num(x.valorOp),0);if(!confirm(`Importar ${rows.length} operação(ões) da B3 no total de ${this.fmt?.(total)||total}?`))return;
+      this.s.banco=this.normalizarBancoImportado?.([...(this.s.banco||[]),...rows])||[...(this.s.banco||[]),...rows];this._salvarBanco?.();const hist=this.loadJSON?.('wOS_importHistorico',[])||[];hist.unshift({dataImportacao:new Date().toISOString(),arquivo:'Texto copiado da B3',corretora:'ITAÚ',modelo:'B3 · área do investidor',qtdOperacoes:rows.length,totalNota:total,moeda:'BRL',status:'Importado e conferido'});this.saveJSON?.('wOS_importHistorico',hist.slice(0,300));this.s.importHistorico=hist.slice(0,300);this.s.v129B3Rows=[];const area=document.getElementById('v129B3Paste');if(area)area.value='';this.v129RenderB3Preview();this.reprocessarBase?.();this.v129RefreshTickerSuggestions();this.toast?.(`${rows.length} operação(ões) da B3 importada(s).`,'success',4200);
+    };
+    A.v129EnsureB3Card=function(){
+      const view=document.getElementById('view-aportes');if(!view||document.getElementById('v129B3Card'))return;const first=view.querySelector('.card');const card=document.createElement('div');card.id='v129B3Card';card.className='card v129-b3-card';card.innerHTML=`<div class="card-hd"><div><div class="card-title"><i class="ph-fill ph-clipboard-text"></i> Colar movimentações da B3</div><div class="mini-note">Aceita uma ou várias operações copiadas em sequência.</div></div></div><div class="info-box">Copie a movimentação na área do investidor da B3 e cole abaixo. O sistema reconhece data, compra/venda, instituição, ticker, quantidade, preço e total; duplicidades ficam bloqueadas antes da gravação.</div><textarea class="f-input" id="v129B3Paste" placeholder="Cole aqui o texto copiado da B3…"></textarea><div class="v129-b3-actions"><div class="f-group"><label class="f-label">Titular das operações</label><input class="f-input" id="v129B3Titular" list="titularesList" value="DAGLES" type="text"></div><button class="btn btn-outline" type="button" onclick="app.v129RenderB3Preview()"><i class="ph ph-magnifying-glass"></i> Reconhecer dados</button><button class="btn btn-primary" id="v129B3ImportBtn" type="button" onclick="app.v129ImportB3()" disabled><i class="ph ph-check"></i> Importar operações válidas</button></div><div class="v129-b3-preview" id="v129B3Preview"></div>`;first?view.insertBefore(card,first):view.appendChild(card);let timer;card.querySelector('#v129B3Paste').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>this.v129RenderB3Preview(),180);});card.querySelector('#v129B3Titular').addEventListener('change',()=>this.v129RenderB3Preview());
+    };
+    A.v129OrganizeB3Card=function(){const card=document.getElementById('v129B3Card'),bar=document.getElementById('v107OpsCommand'),view=document.getElementById('view-aportes');if(!card||!view)return;if(bar&&!document.getElementById('v129B3Toggle')){const button=document.createElement('button');button.id='v129B3Toggle';button.type='button';button.className='btn btn-outline btn-sm';button.innerHTML='<i class="ph ph-clipboard-text"></i> Colar B3';button.onclick=()=>{this.v107ToggleOpImport?.('b3');setTimeout(()=>document.getElementById('v129B3Paste')?.focus(),40);};const spacer=bar.querySelector('.spacer');bar.insertBefore(button,spacer||null);}if(bar){card.classList.add('v107-import-panel');card.dataset.importKind='b3';view.appendChild(card);}};
+    const baseOrganizeOps=A.v107OrganizeOperacoes?.bind(A);if(baseOrganizeOps)A.v107OrganizeOperacoes=function(){const r=baseOrganizeOps(...arguments);this.v129EnsureB3Card();this.v129OrganizeB3Card();return r;};
+
+    /* 3 · arquivo de backup vinculado com handle persistido somente neste navegador */
+    A.v129OpenLinkDB=function(){return new Promise((resolve,reject)=>{const req=indexedDB.open('PatrimonioOSLinkedBackup',1);req.onupgradeneeded=()=>req.result.createObjectStore('links');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});};
+    A.v129StoreHandle=async function(handle){const db=await this.v129OpenLinkDB();await new Promise((resolve,reject)=>{const tx=db.transaction('links','readwrite');tx.objectStore('links').put(handle,'backup');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();};
+    A.v129ReadHandle=async function(){const db=await this.v129OpenLinkDB();const handle=await new Promise((resolve,reject)=>{const req=db.transaction('links','readonly').objectStore('links').get('backup');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});db.close();return handle;};
+    A.v129DeleteHandle=async function(){const db=await this.v129OpenLinkDB();await new Promise((resolve,reject)=>{const tx=db.transaction('links','readwrite');tx.objectStore('links').delete('backup');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();};
+    A.v129HandlePermission=async function(handle,mode='readwrite',ask=false){if(!handle)return false;try{let p=await handle.queryPermission({mode});if(p==='granted')return true;if(ask)p=await handle.requestPermission({mode});return p==='granted';}catch(e){return false;}};
+    A.v129RenderLinkedBackup=function(message=''){
+      const host=document.getElementById('v129LinkedBackup');if(!host)return;const h=this.v129LinkedHandle,supported=typeof window.showOpenFilePicker==='function';let status=message||(!supported?'Este navegador não permite sobrescrever diretamente o mesmo arquivo.':h?'Vínculo salvo neste navegador; o arquivo não é apagado ao desvincular.':'Nenhum arquivo vinculado neste navegador.');
+      host.innerHTML=`<div class="v129-linked-head"><div><div class="f-label">Arquivo vinculado</div><div class="v129-linked-file">${h?esc(h.name):'Nenhum arquivo'}</div><div class="v129-linked-status">${esc(status)}</div></div><i class="ph-fill ${h?'ph-link':'ph-link-break'}" style="font-size:24px;color:${h?'var(--success)':'var(--text-dim)'}"></i></div><div class="v129-linked-actions"><button class="btn btn-outline" type="button" onclick="app.v129LinkBackup()"><i class="ph ph-link"></i> ${h?'Trocar arquivo':'Vincular arquivo'}</button><button class="btn btn-outline" type="button" onclick="app.v129LoadLinked()" ${h?'':'disabled'}><i class="ph ph-arrow-counter-clockwise"></i> Carregar do arquivo</button><button class="btn btn-primary" type="button" onclick="app.v129SaveLinked(true,'manual')" ${h?'':'disabled'}><i class="ph ph-floppy-disk"></i> Salvar agora</button><button class="btn btn-danger" type="button" onclick="app.v129UnlinkBackup()" ${h?'':'disabled'}><i class="ph ph-link-break"></i> Desvincular</button></div>`;
+    };
+    A.v129EnsureLinkedPanel=function(){const info=document.getElementById('backupInfo');if(!info||document.getElementById('v129LinkedBackup'))return;const panel=document.createElement('div');panel.id='v129LinkedBackup';panel.className='v129-linked-panel';info.insertAdjacentElement('afterend',panel);this.v129RenderLinkedBackup();};
+    A.v129InitLinkedBackup=async function(){this.v129EnsureLinkedPanel();if(typeof indexedDB==='undefined')return this.v129RenderLinkedBackup('O navegador não disponibilizou armazenamento para manter o vínculo.');try{this.v129LinkedHandle=await this.v129ReadHandle();if(this.v129LinkedHandle){const granted=await this.v129HandlePermission(this.v129LinkedHandle,'readwrite',false);this.v129RenderLinkedBackup(granted?'Pronto para salvar automaticamente.':'Vínculo encontrado; clique em “Salvar agora” ou “Carregar” para autorizar novamente.');}else this.v129RenderLinkedBackup();}catch(e){this.v129RenderLinkedBackup('Não foi possível recuperar o vínculo salvo. Vincule o arquivo novamente.');}};
+    A.v129LinkBackup=async function(){if(typeof window.showOpenFilePicker!=='function'){this.toast?.('O acesso direto ao mesmo arquivo exige Chrome ou Edge atualizado. Você ainda pode baixar e restaurar backups normalmente.','warning',6000);return;}try{const [handle]=await window.showOpenFilePicker({multiple:false,types:[{description:'Backup JSON',accept:{'application/json':['.json']}}]});if(!handle)return;if(!(await this.v129HandlePermission(handle,'readwrite',true)))throw new Error('Autorização não concedida');this.v129LinkedHandle=handle;await this.v129StoreHandle(handle);this.v129RenderLinkedBackup('Arquivo vinculado e autorizado neste navegador.');this.toast?.(`Backup vinculado: ${handle.name}`,'success');}catch(e){if(e?.name!=='AbortError'){this.v129RenderLinkedBackup('Autorização não concedida. Clique em “Vincular arquivo” para tentar novamente.');this.toast?.('Não foi possível vincular o arquivo.','warning');}}};
+    A.v129SaveLinked=async function(ask=true,origin='automático'){
+      const handle=this.v129LinkedHandle;if(!handle)return false;try{if(!(await this.v129HandlePermission(handle,'readwrite',ask))){this.v129RenderLinkedBackup('É preciso autorizar novamente. Clique em “Salvar agora”.');if(ask)this.toast?.('Autorize o acesso ao arquivo para salvar.','warning');return false;}const payload=this.montarBackupPayload?.(`arquivo_vinculado_${origin}`)||{};const writable=await handle.createWritable();await writable.write(JSON.stringify(payload,null,2));await writable.close();this.registrarHistoricoBackup?.(payload,'arquivo_vinculado');this.v129RenderLinkedBackup(`Salvo em ${new Date().toLocaleString('pt-BR')}.`);return true;}catch(e){this.v129RenderLinkedBackup('Falha ao salvar. Clique em “Salvar agora” para autorizar novamente.');if(ask)this.toast?.('Não foi possível sobrescrever o arquivo vinculado.','error');return false;}
+    };
+    A.v129ScheduleLinkedSave=function(origin='alteração'){if(!this.v129LinkedHandle||this.__v129WritingLinked)return;clearTimeout(this.__v129LinkedTimer);this.__v129LinkedTimer=setTimeout(async()=>{this.__v129WritingLinked=true;try{await this.v129SaveLinked(false,origin);}finally{this.__v129WritingLinked=false;}},900);};
+    A.v129LoadLinked=async function(){const handle=this.v129LinkedHandle;if(!handle)return;try{if(!(await this.v129HandlePermission(handle,'read',true))){this.v129RenderLinkedBackup('Autorize a leitura para carregar o backup.');return;}const file=await handle.getFile();this.restaurarBackup?.({target:{files:[file],value:''}});}catch(e){this.v129RenderLinkedBackup('Falha ao ler o arquivo. Autorize novamente ou troque o vínculo.');this.toast?.('Não foi possível carregar o arquivo vinculado.','error');}};
+    A.v129UnlinkBackup=async function(){if(!this.v129LinkedHandle)return;const name=this.v129LinkedHandle.name;try{await this.v129DeleteHandle();}catch(e){}this.v129LinkedHandle=null;this.v129RenderLinkedBackup('Vínculo removido; o arquivo continua no computador.');this.toast?.(`${name} foi desvinculado sem ser apagado.`,'success');};
+    const baseSaveJSON=A.saveJSON?.bind(A);if(baseSaveJSON)A.saveJSON=function(key,value){const r=baseSaveJSON(key,value);if(/^wOS_(?:data|config|macros|metas|metaAtivosInfo|etfHoldings|planejados|fClasse|outros|rendaManual|ptaxHistorico|irChecklist|notasEstruturadas|snapshots|historicoAjustes|auditIgnored)/.test(String(key)))this.v129ScheduleLinkedSave?.(String(key));return r;};
+
+    /* 4 · menu lateral destravável, reordenável e renomeável */
+    A.v129MenuState=function(){try{return JSON.parse(localStorage.getItem('wOS_navCustom')||'{}')||{};}catch(e){return {};}};
+    A.v129SaveMenu=function(){const sidebar=document.querySelector('.sidebar'),items=[...sidebar.querySelectorAll('.nav-item[data-view]')],labels={},groups={};items.forEach(item=>{labels[item.dataset.view]=item.querySelector('.v129-nav-label')?.textContent?.trim()||'';groups[item.dataset.view]=item.closest('.nav-group')?.dataset.v129Group||'';});const state={order:items.map(x=>x.dataset.view),labels,groups};localStorage.setItem('wOS_navCustom',JSON.stringify(state));this.s.v129NavCustom=state;};
+    A.v129PrepareMenu=function(){
+      const sidebar=document.querySelector('.sidebar');if(!sidebar)return;const groups=[...sidebar.querySelectorAll('.nav-group')];groups.forEach((group,i)=>{group.dataset.v129Group=group.dataset.v129Group||['principal','operacoes','declaracoes','sistema'][i]||`grupo-${i}`;group.addEventListener('dragover',e=>{if(!this.s.v129MenuEditing)return;e.preventDefault();group.classList.add('v129-drag-over');});group.addEventListener('dragleave',()=>group.classList.remove('v129-drag-over'));group.addEventListener('drop',e=>{if(!this.s.v129MenuEditing)return;e.preventDefault();group.classList.remove('v129-drag-over');const view=e.dataTransfer.getData('text/plain'),item=sidebar.querySelector(`.nav-item[data-view="${view}"]`);if(!item)return;const target=e.target.closest('.nav-item[data-view]');if(target&&target!==item&&target.closest('.nav-group')===group)group.insertBefore(item,target);else group.appendChild(item);this.v129SaveMenu();});});
+      [...sidebar.querySelectorAll('.nav-item[data-view]')].forEach(item=>{if(!item.querySelector('.v129-nav-label')){const text=[...item.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim());const span=document.createElement('span');span.className='v129-nav-label';span.textContent=text?.textContent.trim()||item.dataset.view;if(text)text.replaceWith(span);else item.appendChild(span);const edit=document.createElement('button');edit.type='button';edit.className='v129-nav-edit';edit.title='Renomear';edit.innerHTML='<i class="ph ph-pencil-simple"></i>';edit.onclick=e=>{e.preventDefault();e.stopPropagation();this.v129RenameMenuItem(item);};item.appendChild(edit);}item.draggable=!!this.s.v129MenuEditing;item.ondragstart=e=>{if(!this.s.v129MenuEditing){e.preventDefault();return;}e.dataTransfer.setData('text/plain',item.dataset.view);e.dataTransfer.effectAllowed='move';};});
+      let tools=sidebar.querySelector('.v129-menu-tools');if(!tools){tools=document.createElement('div');tools.className='v129-menu-tools';sidebar.querySelector('.brand')?.insertAdjacentElement('afterend',tools);}tools.innerHTML=`<button class="btn ${this.s.v129MenuEditing?'btn-primary':'btn-outline'}" type="button" onclick="app.v129ToggleMenuEdit()"><i class="ph ${this.s.v129MenuEditing?'ph-lock':'ph-sliders-horizontal'}"></i> ${this.s.v129MenuEditing?'Concluir organização':'Organizar menu'}</button>`;sidebar.classList.toggle('v129-menu-editing',!!this.s.v129MenuEditing);
+    };
+    A.v129ApplyMenu=function(){const state=this.v129MenuState(),sidebar=document.querySelector('.sidebar');if(!sidebar)return;this.v129PrepareMenu();const groups=Object.fromEntries([...sidebar.querySelectorAll('.nav-group')].map(g=>[g.dataset.v129Group,g]));(state.order||[]).forEach(view=>{const item=sidebar.querySelector(`.nav-item[data-view="${view}"]`),group=groups[state.groups?.[view]];if(item&&group)group.appendChild(item);});Object.entries(state.labels||{}).forEach(([view,label])=>{const el=sidebar.querySelector(`.nav-item[data-view="${view}"] .v129-nav-label`);if(el&&label)el.textContent=label;});this.v129PrepareMenu();const active=sidebar.querySelector('.nav-item.active .v129-nav-label');if(active)document.getElementById('pageTitle').textContent=active.textContent.trim();};
+    A.v129ToggleMenuEdit=function(){this.s.v129MenuEditing=!this.s.v129MenuEditing;this.v129PrepareMenu();if(!this.s.v129MenuEditing){this.v129SaveMenu();this.toast?.('Organização do menu salva neste navegador.','success');}};
+    A.v129RenameMenuItem=function(item){const label=item.querySelector('.v129-nav-label'),value=prompt('Novo nome deste botão:',label?.textContent||'');if(!value?.trim())return;if(label)label.textContent=value.trim();this.v129SaveMenu();if(item.classList.contains('active'))document.getElementById('pageTitle').textContent=value.trim();};
+    const baseNavigate=A.navigate?.bind(A);if(baseNavigate)A.navigate=function(viewId,el){const r=baseNavigate(viewId,el);const label=el?.querySelector('.v129-nav-label')?.textContent?.trim();if(label)document.getElementById('pageTitle').textContent=label;return r;};
+
+    const observer=new MutationObserver(records=>{const addedInput=records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches?.('input[type="text"]')||node.querySelector?.('input[type="text"]'))));if(addedInput)A.v129RefreshTickerSuggestions();});observer.observe(document.body,{childList:true,subtree:true});
+    A.v129RefreshTickerSuggestions();A.v129BindOperationCalculator();A.v129EnsureB3Card();A.v129OrganizeB3Card();A.v129ApplyMenu();A.v129InitLinkedBackup();
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
+<style id="v130-backup-menu-style">
+.v130-linked-pill{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.v130-linked-pill i{color:var(--success)}
+#v130RestoreTopBtn,#v130LayoutTopBtn{padding:6px 10px!important;font-size:11.5px!important;min-height:30px}
+@media(max-width:760px){.v130-linked-pill{max-width:145px}}
+</style>
+<script id="v130-backup-menu-script">
+(function(){
+  const install=()=>{
+    const A=window.app;if(!A||A.__v130BackupMenu)return;A.__v130BackupMenu=true;
+    const legacyDownload=A.backupCompleto?.bind(A);
+    A.v130RefreshLinkedTop=function(){
+      const top=document.querySelector('.top-bar > div:last-child');if(!top)return;
+      let save=document.getElementById('v76BackupTopBtn');
+      if(!save){save=document.createElement('button');save.id='v76BackupTopBtn';save.type='button';save.className='btn btn-primary btn-sm v76-backup-btn';top.appendChild(save);}
+      save.className='btn btn-primary btn-sm v76-backup-btn';save.innerHTML='<i class="ph ph-floppy-disk"></i> Fazer backup';save.title='Salvar diretamente no arquivo JSON vinculado';save.onclick=e=>{e.preventDefault();e.stopPropagation();this.v130BackupToLinked();};
+      let restore=document.getElementById('v130RestoreTopBtn');
+      if(!restore){restore=document.createElement('button');restore.id='v130RestoreTopBtn';restore.type='button';restore.className='btn btn-outline btn-sm';top.insertBefore(restore,save.nextSibling);}
+      restore.innerHTML='<i class="ph ph-arrow-counter-clockwise"></i> Restaurar backup';restore.title='Restaurar diretamente do arquivo JSON vinculado';restore.onclick=e=>{e.preventDefault();e.stopPropagation();this.v130RestoreFromLinked();};
+      let status=document.getElementById('v130LinkedTopStatus');
+      if(!status){status=document.createElement('div');status.id='v130LinkedTopStatus';status.className='status-pill v130-linked-pill';status.title='Arquivo de backup vinculado neste navegador';top.insertBefore(status,restore.nextSibling);}
+      const h=this.v129LinkedHandle;status.innerHTML=`<i class="ph ${h?'ph-link':'ph-link-break'}"></i><span>${h?this.esc?.(h.name)||h.name:'Sem arquivo vinculado'}</span>`;
+      const dashboard=document.getElementById('view-dashboard')?.classList.contains('active');[save,restore,status].forEach(el=>el.style.display=dashboard?'':'none');
+    };
+    A.v130BackupToLinked=async function(){
+      if(typeof window.showOpenFilePicker!=='function'){legacyDownload?.();return false;}
+      if(!this.v129LinkedHandle)await this.v129LinkBackup?.();
+      if(!this.v129LinkedHandle){this.v130RefreshLinkedTop();return false;}
+      const ok=await this.v129SaveLinked?.(true,'fazer_backup');this.v130RefreshLinkedTop();if(ok)this.toast?.(`Backup salvo em ${this.v129LinkedHandle.name}.`,'success');return !!ok;
+    };
+    A.v130RestoreFromLinked=async function(){
+      if(typeof window.showOpenFilePicker!=='function'){
+        const input=document.querySelector('input[type="file"][accept*="json"][onchange*="restaurarBackup"]');if(input)input.click();else this.toast?.('Não encontrei o seletor de arquivo de backup.','warning');return;
+      }
+      if(!this.v129LinkedHandle)await this.v129LinkBackup?.();
+      this.v130RefreshLinkedTop();if(this.v129LinkedHandle)await this.v129LoadLinked?.();
+    };
+    A.backupCompleto=function(){return this.v130BackupToLinked();};
+    const baseRender=A.v129RenderLinkedBackup?.bind(A);if(baseRender)A.v129RenderLinkedBackup=function(message=''){const r=baseRender(message);this.v130RefreshLinkedTop();return r;};
+    A.v130PrepareBackupArea=function(){
+      const card=document.getElementById('backupInfo')?.closest('.card');if(!card)return;
+      card.querySelectorAll('button[onclick*="backupCompleto"]').forEach(btn=>{btn.innerHTML='<i class="ph ph-floppy-disk"></i> Salvar no arquivo vinculado';btn.removeAttribute('onclick');btn.onclick=()=>this.v130BackupToLinked();});
+      const oldLabel=card.querySelector('label input[type="file"][onchange*="restaurarBackup"]')?.closest('label');if(oldLabel){const text=[...oldLabel.childNodes].find(x=>x.nodeType===Node.TEXT_NODE&&x.textContent.trim());if(text)text.textContent=' Restaurar outro arquivo';}
+      let linked=document.getElementById('v130RestoreLinkedAreaBtn');if(!linked){linked=document.createElement('button');linked.id='v130RestoreLinkedAreaBtn';linked.type='button';linked.className='btn btn-primary';linked.innerHTML='<i class="ph ph-arrow-counter-clockwise"></i> Restaurar do arquivo vinculado';linked.onclick=()=>this.v130RestoreFromLinked();oldLabel?.parentElement?.insertBefore(linked,oldLabel||null);}
+    };
+    const baseClean=A.v126CleanTopBar?.bind(A);if(baseClean)A.v126CleanTopBar=function(){const r=baseClean();this.v130RefreshLinkedTop();return r;};
+    const baseView=A.v120RenderView?.bind(A);if(baseView)A.v120RenderView=function(viewId,force=false){const r=baseView(viewId,force);this.v130RefreshLinkedTop();if(viewId==='view-backup')this.v130PrepareBackupArea();return r;};
+    A.v130PrepareBackupArea();A.v130RefreshLinkedTop();
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
+<style id="v130-aportes-style">
+#view-historico .card.v120-aporte-insight{min-height:0!important;padding:15px 17px!important}
+#view-historico .card.v120-aporte-insight .card-hd{margin-bottom:10px!important;padding-bottom:9px!important}
+#view-historico .v120-donut-layout{grid-template-columns:145px minmax(0,1fr)!important;gap:13px!important;height:auto!important}
+#view-historico .v120-donut{width:136px!important}
+#view-historico .v120-donut::after{inset:25px!important}
+#view-historico .v120-insight-list{gap:4px!important;max-height:220px!important}
+#view-historico .v120-insight-row{appearance:none;width:100%;padding:6px 8px!important;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+#view-historico .v120-insight-row:hover,#view-historico .v120-broker-row:hover{border-color:var(--primary);transform:translateY(-1px)}
+#view-historico .v120-broker-list{gap:6px!important;padding:0 2px!important}
+#view-historico .v120-broker-row{appearance:none;width:100%;background:transparent;color:inherit;text-align:left;border:1px solid transparent;border-radius:8px;padding:5px 6px;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.v130-memory-button{margin-left:auto!important;padding:5px 8px!important;font-size:10px!important}
+.v130-reconcile-ok{color:var(--success)}.v130-reconcile-bad{color:var(--danger)}
+@media(max-width:980px){#view-historico .v120-donut-layout{grid-template-columns:1fr!important}}
+</style>
+<script id="v130-aportes-corrigidos-script">
+(function(){
+  const install=()=>{
+    const A=window.app;if(!A||A.__v130AportesCorrigidos)return;A.__v130AportesCorrigidos=true;
+    const num=v=>{if(typeof v==='number')return Number.isFinite(v)?v:0;const s=String(v??'').trim();if(!s)return 0;const clean=s.replace(/[^0-9,.-]/g,'');const normalized=clean.includes(',')?clean.replace(/\./g,'').replace(',','.'):clean;const out=Number(normalized);return Number.isFinite(out)?out:0;};
+    const money=v=>A.fmt?.(num(v))||new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(num(v));
+    const html=v=>A.esc?.(String(v??''))||String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const colors=['#3d8ef0','#22d07a','#f0b429','#9b6cff','#25b8d2','#f56b6b','#7c93b6','#d977e8'];
+    A.v130IsFixedIncome=function(...values){const text=values.filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();return /(^|\b)(RENDA FIXA|CDB|RDB|TESOURO|SELIC|LCI|LCA|CRI|CRA|DEBENTURE|POUPANCA|PREFIXAD[OA]|IPCA|LETRA DE CREDITO)(\b|$)/.test(text);};
+    A.v130ContributionClass=function(tx,ticker,classMap){
+      const t=String(ticker||this.v106Ticker?.(tx)||tx?.titulo||'').trim().toUpperCase(),forced=this.s?.forcarClasse?.[t],mapped=classMap?.[t],declared=tx?.classe||tx?.tipoAtivo||tx?.produto||'';
+      if(this.v130IsFixedIncome(t,declared,forced,mapped))return 'RENDA FIXA';
+      if(forced)return String(forced).toUpperCase();if(mapped)return String(mapped).toUpperCase();
+      const local=this.normalizeLocal?.(tx?.local)||String(tx?.local||'').toUpperCase();if(local==='EXTERIOR')return 'STOCK';if(/11$/.test(t))return 'FUNDO IMOBILIÁRIO';return 'AÇÃO';
+    };
+    A.v120AporteClassTotals=function(year){
+      year=Number(year);const classes={},brokers={},details=[],classMap={},txById=new Map();
+      (this.getAtivosConsolidados?.()||[]).forEach(a=>{if(a?.ticker)classMap[String(a.ticker).trim().toUpperCase()]=String(a.classe||'').toUpperCase();});
+      (this.s?.banco||[]).forEach(tx=>{if(tx?.id!=null)txById.set(String(tx.id),tx);});
+      const add=(row,cl,broker)=>{const value=num(row.valor);if(Math.abs(value)<.005)return;cl=String(cl||'NÃO CLASSIFICADO').toUpperCase();broker=String(broker||'Não informado').trim()||'Não informado';classes[cl]=(classes[cl]||0)+value;brokers[broker]=(brokers[broker]||0)+value;details.push({...row,classe:cl,corretora:broker,valor:value});};
+      for(let month=1;month<=12;month++){
+        const monthRows=this.getHistoricoMesDetalhes?.(year,month)||[];
+        monthRows.forEach(row=>{const tx=row.id!=null?txById.get(String(row.id)):null,ticker=String(row.ticker||this.v106Ticker?.(tx)||tx?.titulo||'—').toUpperCase(),cl=this.v130ContributionClass(tx,ticker,classMap),broker=this.v106Broker?.(tx?.onde,tx?.local)||row.corretora||tx?.onde||tx?.corretora||'Não informado';add({...row,ticker,mes:month,origem:'OPERAÇÃO'},cl,broker);});
+        const adjustment=num(this.getHistoricoAjuste?.(year,month)?.ajuste);if(Math.abs(adjustment)>.005)add({data:`${year}-${String(month).padStart(2,'0')}`,ticker:'AJUSTE MANUAL',tipo:'AJUSTE MANUAL',mes:month,origem:'AJUSTE',valor:adjustment},'AJUSTE MANUAL','Ajuste manual');
+      }
+      const rfRows=this.getHistoricoMesDetalhes?.(year,13)||[];rfRows.forEach(row=>add({...row,mes:13,origem:'RENDA FIXA ANUAL'},'RENDA FIXA','Renda fixa anual'));
+      const rfAdjustment=num(this.getHistoricoAjuste?.(year,13)?.ajuste);if(Math.abs(rfAdjustment)>.005)add({data:String(year),ticker:'AJUSTE RENDA FIXA',tipo:'AJUSTE RF ANUAL',mes:13,origem:'AJUSTE',valor:rfAdjustment},'RENDA FIXA','Ajuste RF anual');
+      const total=Object.values(classes).reduce((s,v)=>s+num(v),0),matrixTotal=num(this.v120AporteYearData?.(year)?.total),difference=total-matrixTotal;
+      return {year,classes,brokers,details,total,matrixTotal,difference,rf:classes['RENDA FIXA']||0};
+    };
+    A.v130OpenAporteMemory=function(year,dimension='',filter=''){
+      const dist=this.v120AporteClassTotals(year),rows=dist.details.filter(row=>!dimension||(dimension==='classe'?row.classe:row.corretora)===filter),positive=rows.filter(x=>x.valor>0&&x.origem==='OPERAÇÃO').reduce((s,x)=>s+x.valor,0),sales=Math.abs(rows.filter(x=>x.valor<0&&x.origem==='OPERAÇÃO').reduce((s,x)=>s+x.valor,0)),rf=rows.filter(x=>x.origem==='RENDA FIXA ANUAL').reduce((s,x)=>s+x.valor,0),adjust=rows.filter(x=>x.origem==='AJUSTE').reduce((s,x)=>s+x.valor,0),net=rows.reduce((s,x)=>s+x.valor,0);
+      const title=filter?`${dimension==='classe'?'Destino':'Corretora'} · ${filter}`:`Destino dos aportes · ${year}`;
+      const summary=`<div class="v64-memory-total"><div class="v64-memory-kpi"><span>Compras / aplicações</span><strong>${money(positive)}</strong></div><div class="v64-memory-kpi"><span>Vendas / resgates</span><strong>− ${money(sales)}</strong></div><div class="v64-memory-kpi"><span>Renda fixa anual</span><strong>${money(rf)}</strong></div><div class="v64-memory-kpi"><span>Ajustes</span><strong>${adjust>=0?'+ ':''}${money(adjust)}</strong></div><div class="v64-memory-kpi"><span>Total líquido</span><strong>${money(net)}</strong></div></div>`;
+      const formula=`<div class="info-box"><strong>Fórmula:</strong> compras/aplicações − vendas/resgates + renda fixa anual + ajustes = <strong>${money(net)}</strong>.<br><span class="${Math.abs(dist.difference)<.01?'v130-reconcile-ok':'v130-reconcile-bad'}">Conciliação completa do ano: gráfico ${money(dist.total)} · matriz ${money(dist.matrixTotal)} · diferença ${money(dist.difference)}.</span></div>`;
+      const bodyRows=rows.sort((a,b)=>String(a.data).localeCompare(String(b.data))||String(a.ticker).localeCompare(String(b.ticker))).map(row=>`<tr><td>${html(row.data||year)}</td><td><strong>${html(row.ticker)}</strong></td><td>${html(row.classe)}</td><td>${html(row.corretora)}</td><td>${html(row.tipo||row.origem)}</td><td style="text-align:right;font-weight:800;color:${row.valor>=0?'var(--success)':'var(--danger)'}">${row.valor>=0?'+ ':''}${money(row.valor)}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty-smart">Nenhum lançamento nesta seleção.</div></td></tr>';
+      const table=`<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ativo / origem</th><th>Classe</th><th>Corretora</th><th>Tipo</th><th style="text-align:right">Impacto</th></tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+      this.abrirModalMemoria?.(title,`${rows.length} lançamento(s) · total líquido <strong>${money(net)}</strong>`,summary+formula+table);
+    };
+    A.v120RenderAporteInsights=function(year,dist){
+      dist=dist||this.v120AporteClassTotals(year);const entries=Object.entries(dist.classes||{}).filter(([,v])=>Math.abs(num(v))>.005).sort((a,b)=>Math.abs(num(b[1]))-Math.abs(num(a[1]))),scale=entries.reduce((s,x)=>s+Math.abs(num(x[1])),0),total=num(dist.total),box=document.getElementById('v107AporteClasses');
+      if(box){let cursor=0;const stops=entries.map((x,i)=>{const pct=scale?Math.abs(num(x[1]))/scale*100:0,start=cursor;cursor+=pct;return `${colors[i%colors.length]} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;}).join(',');box.className='v120-aporte-insight v120-donut-layout';box.innerHTML=entries.length?`<div class="v120-donut" data-v130-memory-dimension="" style="background:conic-gradient(${stops})"><div class="v120-donut-center"><span>Total líquido</span><strong>${money(total)}</strong></div></div><div class="v120-insight-list">${entries.map((x,i)=>{const pct=total?num(x[1])/total*100:0;return `<button type="button" class="v120-insight-row" data-v130-memory-dimension="classe" data-v130-memory-filter="${html(x[0])}" style="--v120-color:${colors[i%colors.length]}"><i class="dot"></i><span class="main"><strong>${html(x[0])}</strong><span>${pct>=0?num(pct).toLocaleString('pt-BR',{maximumFractionDigits:1}):num(pct).toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total líquido</span></span><span class="value"><strong>${money(x[1])}</strong><span>${year}</span></span></button>`;}).join('')}</div>`:'<div class="info-box">Sem aportes identificáveis neste ano.</div>';}
+      const origin=document.getElementById('v120AporteOrigins'),brokers=Object.entries(dist.brokers||{}).filter(([,v])=>Math.abs(num(v))>.005).sort((a,b)=>Math.abs(num(b[1]))-Math.abs(num(a[1]))),brokerScale=brokers.reduce((s,x)=>s+Math.abs(num(x[1])),0),max=Math.max(1,...brokers.map(x=>Math.abs(num(x[1]))));if(origin)origin.innerHTML=brokers.length?`<div class="v120-broker-list">${brokers.slice(0,12).map(x=>{const pct=brokerScale?Math.abs(num(x[1]))/brokerScale*100:0;return `<button type="button" class="v120-broker-row" data-v130-memory-dimension="corretora" data-v130-memory-filter="${html(x[0])}"><strong title="${html(x[0])}">${html(x[0])}</strong><div class="v120-broker-track"><i style="width:${Math.max(3,Math.abs(num(x[1]))/max*100).toFixed(1)}%"></i></div><span class="v120-broker-value"><b>${money(x[1])}</b>${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</span></button>`;}).join('')}</div>`:'<div class="info-box">Sem corretora identificada nos aportes do ano.</div>';
+      document.querySelectorAll('#v107AporteClasses [data-v130-memory-dimension],#v120AporteOrigins [data-v130-memory-dimension]').forEach(el=>el.onclick=()=>this.v130OpenAporteMemory(year,el.dataset.v130MemoryDimension||'',el.dataset.v130MemoryFilter||''));
+      [['v107AporteClasses','Destino dos aportes'],['v120AporteOrigins','Aportes por corretora']].forEach(([id])=>{const card=document.getElementById(id)?.closest('.card'),hd=card?.querySelector('.card-hd');if(!hd||hd.querySelector('.v130-memory-button'))return;const btn=document.createElement('button');btn.type='button';btn.className='btn btn-outline btn-sm v130-memory-button';btn.innerHTML='<i class="ph ph-list-magnifying-glass"></i> Memória';btn.onclick=()=>this.v130OpenAporteMemory(year);hd.appendChild(btn);});
+    };
+    if(document.getElementById('view-historico')?.classList.contains('active'))A.v120RenderAporteAnalytics?.();
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
+<style id="v130-layout-style">
+#v130LayoutTopBtn{padding:6px 10px!important;font-size:11.5px!important;min-height:30px}
+.v130-layout-editing .view.active .card{outline:1px dashed color-mix(in srgb,var(--primary) 58%,transparent);outline-offset:3px;position:relative}
+.v130-layout-controls{display:none;position:absolute;z-index:12;right:8px;top:7px;align-items:center;gap:4px;padding:4px;border:1px solid var(--border-bright);border-radius:9px;background:var(--bg-surface);box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.v130-layout-editing .view.active .card>.v130-layout-controls{display:flex}
+.v130-layout-controls button{appearance:none;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text-muted);height:26px;min-width:28px;padding:0 6px;display:grid;place-items:center;cursor:pointer;font:800 9px/1 var(--font-body)}
+.v130-layout-controls button:hover{color:var(--primary);border-color:var(--primary)}
+.v130-layout-controls .v130-drag{cursor:grab}.v130-layout-controls .v130-drag:active{cursor:grabbing}
+.v130-layout-editing .view.active .card>.card-hd{padding-right:132px}
+.card.v130-layout-wide{grid-column:1/-1!important}
+.card.v130-size-compact{min-height:0!important;padding:12px 14px!important}
+.card.v130-size-compact .v107-chart-wrap,.card.v130-size-compact .chart-wrap,.card.v130-size-compact .v75-dashboard-chart-wrap{height:215px!important;min-height:215px!important}
+.card.v130-size-tall{min-height:410px!important}
+.card.v130-size-tall .v107-chart-wrap,.card.v130-size-tall .chart-wrap,.card.v130-size-tall .v75-dashboard-chart-wrap{height:340px!important;min-height:340px!important}
+.card.v130-layout-dragging{opacity:.45}.card.v130-layout-over{outline:2px solid var(--primary)!important}
+@media(max-width:760px){.card.v130-layout-wide{grid-column:auto!important}.v130-layout-editing .view.active .card>.card-hd{padding-right:0;padding-top:40px}}
+</style>
+<script id="v130-layout-seguro-script">
+(function(){
+  const install=()=>{
+    const A=window.app;if(!A||A.__v130LayoutSeguro)return;A.__v130LayoutSeguro=true;A.VERSAO_SISTEMA='v130_backup_vinculado_aportes_layout';document.title='Patrimônio OS · v130';const brand=document.querySelector('.brand sub');if(brand)brand.textContent='v130 · backup e aportes';
+    A.s.v130LayoutEditing=false;
+    A.v130LayoutState=function(){try{return JSON.parse(localStorage.getItem('wOS_layoutV130')||'{"cards":{},"parents":{}}');}catch(e){return {cards:{},parents:{}};}};
+    A.v130SaveLayoutState=function(state){localStorage.setItem('wOS_layoutV130',JSON.stringify(state));this.s.v130LayoutState=state;};
+    A.v130CardKey=function(card,view){if(card.dataset.v130LayoutKey)return card.dataset.v130LayoutKey;const explicit=card.id||card.querySelector('[id]')?.id,title=card.querySelector('.card-title,.section-title,h2,h3')?.textContent?.trim()||'cartao';let base=explicit||title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cartao',key=base,i=2;while(view.querySelector(`.card[data-v130-layout-key="${CSS.escape(key)}"]`))key=`${base}-${i++}`;card.dataset.v130LayoutKey=key;return key;};
+    A.v130ParentKey=function(parent,view){if(parent.dataset.v130LayoutParent)return parent.dataset.v130LayoutParent;const explicit=parent.id;if(explicit){parent.dataset.v130LayoutParent=explicit;return explicit;}const parents=[...new Set([...view.querySelectorAll('.card')].map(c=>c.parentElement))],key=`grupo-${Math.max(0,parents.indexOf(parent))+1}`;parent.dataset.v130LayoutParent=key;return key;};
+    A.v130GetCardState=function(viewId,key){const state=this.v130LayoutState();state.cards=state.cards||{};return {state,item:state.cards[`${viewId}::${key}`]||{size:'normal',wide:false}};};
+    A.v130ApplyCardState=function(card,item){card.classList.toggle('v130-layout-wide',!!item.wide);card.classList.toggle('v130-size-compact',item.size==='compact');card.classList.toggle('v130-size-tall',item.size==='tall');};
+    A.v130InstallCardControls=function(card,view){
+      const viewId=view.id,key=this.v130CardKey(card,view);let controls=[...card.children].find(x=>x.classList?.contains('v130-layout-controls'));
+      if(!controls){controls=document.createElement('div');controls.className='v130-layout-controls';controls.innerHTML='<button type="button" class="v130-drag" title="Arrastar dentro deste bloco"><i class="ph ph-dots-six-vertical"></i></button><button type="button" class="v130-size" title="Alternar tamanho">N</button><button type="button" class="v130-wide" title="Alternar largura"><i class="ph ph-arrows-out-line-horizontal"></i></button><button type="button" class="v130-reset" title="Restaurar este cartão"><i class="ph ph-arrow-counter-clockwise"></i></button>';card.appendChild(controls);}
+      const size=controls.querySelector('.v130-size'),drag=controls.querySelector('.v130-drag');
+      size.onclick=e=>{e.stopPropagation();const {state,item}=this.v130GetCardState(viewId,key),order=['compact','normal','tall'];item.size=order[(order.indexOf(item.size)+1)%order.length];state.cards[`${viewId}::${key}`]=item;this.v130SaveLayoutState(state);this.v130ApplyCardState(card,item);size.textContent=item.size==='compact'?'P':item.size==='tall'?'G':'N';this.v130ResizeLayoutCharts(viewId);};
+      controls.querySelector('.v130-wide').onclick=e=>{e.stopPropagation();const {state,item}=this.v130GetCardState(viewId,key);item.wide=!item.wide;state.cards[`${viewId}::${key}`]=item;this.v130SaveLayoutState(state);this.v130ApplyCardState(card,item);this.v130ResizeLayoutCharts(viewId);};
+      controls.querySelector('.v130-reset').onclick=e=>{e.stopPropagation();const state=this.v130LayoutState();delete state.cards[`${viewId}::${key}`];this.v130SaveLayoutState(state);this.v130ApplyCardState(card,{size:'normal',wide:false});size.textContent='N';this.v130ResizeLayoutCharts(viewId);};
+      drag.onpointerdown=()=>{if(this.s.v130LayoutEditing)card.draggable=true;};drag.onpointerup=()=>card.draggable=false;
+      card.ondragstart=e=>{if(!this.s.v130LayoutEditing||e.target!==card){e.preventDefault();return;}this.__v130DraggedCard=card;card.classList.add('v130-layout-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',`${viewId}::${key}`);};
+      card.ondragover=e=>{if(!this.__v130DraggedCard||this.__v130DraggedCard.parentElement!==card.parentElement||this.__v130DraggedCard===card)return;e.preventDefault();card.classList.add('v130-layout-over');};
+      card.ondragleave=()=>card.classList.remove('v130-layout-over');
+      card.ondrop=e=>{const dragged=this.__v130DraggedCard;if(!dragged||dragged.parentElement!==card.parentElement||dragged===card)return;e.preventDefault();card.classList.remove('v130-layout-over');const rect=card.getBoundingClientRect(),before=e.clientY<rect.top+rect.height/2||e.clientX<rect.left+rect.width/2;card.parentElement.insertBefore(dragged,before?card:card.nextSibling);this.v130RememberParentOrder(card.parentElement,view);};
+      card.ondragend=()=>{card.draggable=false;card.classList.remove('v130-layout-dragging');view.querySelectorAll('.v130-layout-over').forEach(x=>x.classList.remove('v130-layout-over'));this.__v130DraggedCard=null;};
+    };
+    A.v130RememberParentOrder=function(parent,view){const direct=[...parent.children].filter(x=>x.classList?.contains('card')),state=this.v130LayoutState(),pkey=`${view.id}::${this.v130ParentKey(parent,view)}`;state.parents=state.parents||{};state.parents[pkey]=direct.map(card=>this.v130CardKey(card,view));this.v130SaveLayoutState(state);};
+    A.v130ResizeLayoutCharts=function(viewId){requestAnimationFrame(()=>document.querySelectorAll(`#${CSS.escape(viewId)} canvas`).forEach(canvas=>{try{window.Chart?.getChart?.(canvas)?.resize?.();}catch(e){}}));};
+    A.v130ApplyLayout=function(viewId){
+      const view=document.getElementById(viewId);if(!view)return;const state=this.v130LayoutState();
+      [...view.querySelectorAll('.card')].forEach(card=>{const key=this.v130CardKey(card,view),item=state.cards?.[`${viewId}::${key}`]||{size:'normal',wide:false};this.v130ApplyCardState(card,item);this.v130InstallCardControls(card,view);const size=[...card.children].find(x=>x.classList?.contains('v130-layout-controls'))?.querySelector('.v130-size');if(size)size.textContent=item.size==='compact'?'P':item.size==='tall'?'G':'N';});
+      const parents=[...new Set([...view.querySelectorAll('.card')].map(c=>c.parentElement))];parents.forEach(parent=>{const order=state.parents?.[`${viewId}::${this.v130ParentKey(parent,view)}`];if(!Array.isArray(order))return;const current=[...parent.children].filter(x=>x.classList?.contains('card')),map=new Map(current.map(card=>[this.v130CardKey(card,view),card])),desired=[...order.map(key=>map.get(key)).filter(Boolean),...current.filter(card=>!order.includes(this.v130CardKey(card,view)))];if(desired.length!==current.length)return;const markers=current.map(card=>{const marker=document.createComment('v130-card-slot');parent.insertBefore(marker,card);return marker;});desired.forEach((card,i)=>parent.insertBefore(card,markers[i].nextSibling));markers.forEach(marker=>marker.remove());});
+      document.body.classList.toggle('v130-layout-editing',!!this.s.v130LayoutEditing);this.v130ResizeLayoutCharts(viewId);
+    };
+    A.v130RefreshLayoutButton=function(){const top=document.querySelector('.top-bar > div:last-child');if(!top)return;let btn=document.getElementById('v130LayoutTopBtn');if(!btn){btn=document.createElement('button');btn.id='v130LayoutTopBtn';btn.type='button';top.appendChild(btn);}btn.className=`btn ${this.s.v130LayoutEditing?'btn-primary':'btn-outline'} btn-sm`;btn.innerHTML=`<i class="ph ${this.s.v130LayoutEditing?'ph-check':'ph-layout'}"></i> ${this.s.v130LayoutEditing?'Concluir layout':'Ajustar layout'}`;btn.title='Reordenar e redimensionar cartões com opções seguras';btn.onclick=()=>this.v130ToggleLayout();};
+    A.v130ToggleLayout=function(){this.s.v130LayoutEditing=!this.s.v130LayoutEditing;document.body.classList.toggle('v130-layout-editing',this.s.v130LayoutEditing);this.v130RefreshLayoutButton();const active=document.querySelector('.view.active')?.id;if(active)this.v130ApplyLayout(active);if(!this.s.v130LayoutEditing)this.toast?.('Organização dos cartões salva neste navegador.','success');};
+    const baseView=A.v120RenderView?.bind(A);if(baseView)A.v120RenderView=function(viewId,force=false){const r=baseView(viewId,force);requestAnimationFrame(()=>this.v130ApplyLayout(viewId));this.v130RefreshLayoutButton();return r;};
+    const baseClean=A.v126CleanTopBar?.bind(A);if(baseClean)A.v126CleanTopBar=function(){const r=baseClean();this.v130RefreshLayoutButton();return r;};
+    A.v130RefreshLayoutButton();const active=document.querySelector('.view.active')?.id;if(active)A.v130ApplyLayout(active);
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
+<script id="v131-renda-proporcional-ano-atual-script">
+(function(){
+  const install=()=>{
+    const A=window.app;if(!A||A.__v131RendaProporcional)return;A.__v131RendaProporcional=true;A.VERSAO_SISTEMA='v131_renda_proporcional_ano_atual';document.title='Patrimônio OS · v131';const brand=document.querySelector('.brand sub');if(brand)brand.textContent='v131 · renda proporcional';
+    const n=value=>{const x=Number(value);return Number.isFinite(x)?x:0;};
+    const fmt=value=>A.fmt?.(n(value))||n(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    /* Anos encerrados: RF/12. Ano atual: RF dividida somente pelos meses com dividendos preenchidos. */
+    A.v126IncomeYear=function(year){
+      year=Number(year);const dividends=Array.from({length:12},(_,i)=>n(this.getRendaManualMes?.(year,i+1)?.dividendos)),rf=n(this.getRendaManualMes?.(year,13)?.rendaFixa),include=this.v126IncomeMode?.()==='COMPLETO',filledIndices=dividends.map((value,index)=>Math.abs(value)>.00001?index:-1).filter(index=>index>=0),filled=filledIndices.length,isCurrent=year===new Date().getFullYear(),divisor=isCurrent?Math.max(filled,1):12,rfMonth=include?rf/divisor:0,monthly=dividends.map((value,index)=>value+(include&&(!isCurrent||filledIndices.includes(index))?rfMonth:0)),totalDividends=dividends.reduce((sum,value)=>sum+value,0),total=totalDividends+(include?rf:0),average=total/divisor;
+      return {year,dividends,rf,monthly,filled,filledIndices,totalDividends,total,average,divisor,rfMonth,isCurrent};
+    };
+
+    const baseSummary=A.getRendaAnoResumo?.bind(A);if(baseSummary)A.getRendaAnoResumo=function(year,limitarAteAtual=false){const result=baseSummary(year,limitarAteAtual)||{},data=this.v126IncomeYear(Number(year)),total=data.totalDividends+data.rf;result.meses=data.divisor;result.media=total/data.divisor;result.total=total;result.totalDividendos=data.totalDividends;result.totalRF=data.rf;result.divisor=data.divisor;result.rfMensal=data.rf/data.divisor;return result;};
+
+    A.v127IncomeTrend=function(){
+      const series=this.v107RendaSeries(),current=series.current,cur=series.vals[current]||Array(12).fill(0),prev=series.vals[current-1]||Array(12).fill(0),currentData=this.v126IncomeYear(current),indices=currentData.filledIndices.length?currentData.filledIndices:Array.from({length:Math.max(1,n(series.last)||1)},(_,i)=>i),last=Math.max(1,Math.min(12,n(series.last)||1)),actual=indices.reduce((sum,index)=>sum+n(cur[index]),0),previous=indices.reduce((sum,index)=>sum+n(prev[index]),0),months=Math.max(1,indices.length),average=actual/months,previousAverage=previous/months,growth=previousAverage?average/previousAverage-1:0,monthly=Array(12).fill(null),accumulated=Array(12).fill(null);let projected=actual;
+      if(last<12){monthly[last-1]=n(cur[last-1]);accumulated[last-1]=actual;for(let i=last;i<12;i++){const seasonal=n(prev[i])>0?n(prev[i])*(1+growth):average;monthly[i]=Math.max(0,seasonal);projected+=monthly[i];accumulated[i]=projected;}}
+      return {series,current,cur,prev,last,months,actual,previous,average,previousAverage,growth,monthly,accumulated,projected};
+    };
+
+    const baseIncomeMonth=A.v120OpenIncomeMonth?.bind(A);if(baseIncomeMonth)A.v120OpenIncomeMonth=function(year,month){const result=baseIncomeMonth(year,month),body=document.getElementById('v120IncomeModalBody'),info=body?.querySelector('#v126IncomeMonthRF');if(info&&this.v126IncomeMode?.()==='COMPLETO'){const data=this.v126IncomeYear(Number(year)),div=n(this.getRendaManualMes?.(year,month)?.dividendos),share=data.isCurrent&&!data.filledIndices.includes(Number(month)-1)?0:data.rfMonth;info.innerHTML=`<strong>Visão completa do gráfico:</strong> dividendos ${fmt(div)} + renda fixa proporcional ${fmt(share)} = <strong>${fmt(div+share)}</strong>.<br><span class="mini-note">${data.isCurrent?`RF anual dividida pelos ${data.divisor} meses preenchidos de ${year}.`:`RF anual dividida pelos 12 meses de ${year}.`}</span>`;}return result;};
+
+    const baseRender=A.v120RenderRendaAnalytics?.bind(A);if(baseRender)A.v120RenderRendaAnalytics=function(){const result=baseRender();const trend=this.v127IncomeTrend?.(),stats=document.getElementById('v107RendaStats');if(stats&&trend){const media=stats.querySelectorAll('.v107-stat')[2]?.querySelector('small');if(media)media.textContent=`${trend.months} mês(es) preenchido(s) · mesma base comparativa`;const projection=stats.querySelectorAll('.v107-stat')[3]?.querySelector('small');if(projection&&this.v126IncomeMode?.()==='COMPLETO')projection.title='No ano atual, a renda fixa realizada é distribuída apenas pelos meses preenchidos; os meses futuros permanecem como tendência.';}return result;};
+
+    A.__v120RendaLast=0;A.__v120DashboardCoreSig='';A.__v120Dirty?.add?.('view-renda');A.__v120Dirty?.add?.('view-dashboard');
+    if(document.getElementById('view-renda')?.classList.contains('active'))A.v120RenderRendaAnalytics?.();
+    if(document.getElementById('view-dashboard')?.classList.contains('active'))A.renderizarDashboard?.(true);
+  };
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
+</script>
 </body>
 </html>
