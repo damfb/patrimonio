@@ -13262,7 +13262,7 @@ window.addEventListener('load', () => app.init());
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <label class="btn btn-primary btn-sm" style="cursor:pointer;">
               <i class="ph ph-upload-simple"></i> Selecionar extrato
-              <input accept="application/pdf,.pdf" onchange="app.processarRendaPDF(event)" style="display:none" type="file"/>
+              <input accept="application/pdf,.pdf" onchange="app.v136ImportarRendaPDF(event)" style="display:none" type="file"/>
             </label>
             <button class="btn btn-success btn-sm" id="btnConfirmarRendaPDF" onclick="app.confirmarRendaPDFPreview()" disabled><i class="ph ph-plus-circle"></i> Confirmar e somar</button>
             <button class="btn btn-outline btn-sm" onclick="app.limparRendaPDFPreview()"><i class="ph ph-broom"></i> Limpar prévia</button>
@@ -17949,7 +17949,7 @@ Não confunda oscilação normal de preço, notícia de mercado ou resultado tri
         try{
           textoEstruturado=await this.v95ExtrairTextoPDFEstruturado(file);
           const modelo=this.v78DetectarModeloRendaPDF?.(textoEstruturado,file.name);
-          if(modelo!=='B3_MENSAL') return oldProcessar(evt);
+          if(modelo!=='B3_MENSAL') return await oldProcessar(evt);
 
           this.v78EnsureRendaPDFState?.();
           this.s.pendingRendaPDF=null;
@@ -21161,6 +21161,72 @@ A.v133BuildManagerPDF=function(){
 </style>
 <script id="v135-quality-init">
 (function(){const install=()=>{const A=window.app;if(!A||A.__v135Ready)return;A.__v135Ready=true;A.VERSAO_SISTEMA="v135_confiabilidade_visual";document.title="Patrimônio OS · v135";const brand=document.querySelector(".brand sub");if(brand)brand.textContent="v135 · carteira e relatório";A.v135RememberClasses();A.v135RefreshUI();const render=A.v120RenderView?.bind(A);if(render)A.v120RenderView=function(){const r=render(...arguments);this.v135RefreshUI();return r;};window.addEventListener("beforeunload",e=>{if(A.v129LinkedHandle&&(A.__v135WritePromise||A.v135BackupState.revision>A.v135BackupState.savedRevision)){e.preventDefault();e.returnValue="";}});};if(window.app)install();else window.addEventListener("load",install,{once:true});})();
+</script>
+<script id="v136-import-feedback-js">
+(function(){
+  function install(){
+    const A=window.app;
+    if(!A||A.__v136ImportFeedback)return;
+    A.__v136ImportFeedback=true;
+    A.VERSAO_SISTEMA='v136_importacao_pdf';
+    document.title='Patrimônio OS · v136';
+    const brand=document.querySelector('.brand sub');
+    if(brand)brand.textContent='v136 · importação de extratos';
+    A.v136StatusRendaPDF=function(message,kind='info'){
+      this.v78InserirCardRendaPDF?.();
+      const card=document.getElementById('rendaPdfImportCard');
+      if(!card)return;
+      card.classList.add('open');
+      let status=document.getElementById('v136ImportStatus');
+      if(!status){
+        status=document.createElement('div');status.id='v136ImportStatus';
+        status.className='info-box';status.setAttribute('role','status');
+        status.setAttribute('aria-live','polite');
+        const head=card.querySelector('.card-hd');
+        if(head)head.insertAdjacentElement('afterend',status);else card.prepend(status);
+      }
+      status.textContent=message;
+      status.style.borderColor=kind==='error'?'var(--danger)':kind==='success'?'var(--success)':'var(--primary)';
+      card.setAttribute('aria-busy',String(!!this.__v136RendaBusy));
+    };
+    A.v136ImportarRendaPDF=async function(evt){
+      const input=evt?.target,file=input?.files?.[0];
+      if(!file)return;
+      if(this.__v136RendaBusy){this.toast?.('Aguarde a leitura do extrato em andamento.','info');return;}
+      this.__v136RendaBusy=true;
+      if(input)input.disabled=true;
+      this.s.pendingRendaPDF=null;
+      let reminder;
+      try{
+        this.v78RenderRendaPDFPanel?.();
+        this.v136StatusRendaPDF(`Lendo ${file.name}… Aguarde a prévia para conferir e confirmar.`);
+        const card=document.getElementById('rendaPdfImportCard');
+        card?.scrollIntoView?.({behavior:'smooth',block:'start'});
+        if(!window.pdfjsLib)throw new Error('O leitor de PDF não carregou. Conecte-se à internet, reabra o sistema e selecione o arquivo novamente.');
+        reminder=setTimeout(()=>this.v136StatusRendaPDF(`Ainda processando ${file.name}… A leitura das páginas e a consulta de PTAX podem levar alguns instantes.`),8000);
+        // Snapshot the File: clearing an input in an inner handler must not discard it.
+        await this.processarRendaPDF({target:{files:[file],value:file.name}});
+        const p=this.s.pendingRendaPDF;
+        if(p?.erro)throw new Error(p.erro);
+        if(!p||!Array.isArray(p.itens))throw new Error('A leitura terminou sem gerar uma prévia. Selecione o extrato mensal em PDF novamente.');
+        const pending=(p.ptaxPendente||[]).length;
+        this.v136StatusRendaPDF(`${file.name}: ${p.itens.length} lançamento(s) encontrado(s). ${pending?'Há PTAX pendente; complete a cotação na prévia antes de confirmar.':'Confira a prévia abaixo e clique em Confirmar e somar.'}`,'success');
+      }catch(error){
+        const message=error?.message||'Não foi possível ler o PDF. Selecione o arquivo novamente.';
+        this.s.pendingRendaPDF={erro:message,arquivo:file.name};
+        this.v78RenderRendaPDFPanel?.();
+        this.v136StatusRendaPDF(message,'error');
+        this.toast?.(message,'error',6500);
+      }finally{
+        clearTimeout(reminder);
+        this.__v136RendaBusy=false;
+        if(input){input.value='';input.disabled=false;}
+        document.getElementById('rendaPdfImportCard')?.setAttribute('aria-busy','false');
+      }
+    };
+  }
+  if(window.app)install();else window.addEventListener('load',install,{once:true});
+})();
 </script>
 </body>
 </html>
